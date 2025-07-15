@@ -85,3 +85,15 @@ DOWNLOAD_DELAY = 1
 
 # Set settings whose default value is deprecated to a future-proof value
 FEED_EXPORT_ENCODING = "utf-8"
+
+# Enable Playwright downloader handler
+DOWNLOAD_HANDLERS = {
+    "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+    "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+}
+
+# Configure Playwright
+PLAYWRIGHT_BROWSER_TYPE = "chromium"
+PLAYWRIGHT_LAUNCH_OPTIONS = {
+    "headless": True,
+}

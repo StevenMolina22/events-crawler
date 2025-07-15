@@ -58,36 +58,6 @@ pyproject.toml
 # your spiders.
 ```
 
-## File: show_up/spiders/luma.py
-```python
-import scrapy
-
-
-class LumaSpider(scrapy.Spider):
-    name = "luma"
-    allowed_domains = ["lu.ma"]
-    start_urls = ["https://lu.ma/crypto"]
-
-    def parse(self, response):
-        pass
-```
-
-## File: show_up/items.py
-```python
-# Define here the models for your scraped items
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/items.html
-
-import scrapy
-
-
-class ShowUpItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
-```
-
 ## File: show_up/middlewares.py
 ```python
 # Define here the models for your spider middleware
@@ -192,20 +162,88 @@ class ShowUpDownloaderMiddleware:
         spider.logger.info("Spider opened: %s" % spider.name)
 ```
 
+## File: main.py
+```python
+def main():
+    print("Hello from show-up-crawler!")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## File: pyproject.toml
+```toml
+[project]
+name = "show-up-crawler"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "scrapy>=2.13.3",
+]
+```
+
+## File: show_up/spiders/luma.py
+```python
+import scrapy
+from show_up.items import EventItem
+
+
+class LumaSpider(scrapy.Spider):
+    name = "luma"
+    allowed_domains = ["lu.ma"]
+    start_urls = ["https://lu.ma/crypto"]
+
+    def parse(self, response):
+        # Extract event links from the main page
+        event_links = response.css('a.event-card-link::attr(href)').getall()
+        for link in event_links:
+            yield response.follow(link, self.parse_event)
+
+    def parse_event(self, response):
+        # Parse the event page and extract the data
+        item = EventItem()
+        item['title'] = response.css('h1::text').get()
+        item['date'] = response.css('.event-date::text').get()
+        item['location'] = response.css('.event-location::text').get()
+        item['url'] = response.url
+        yield item
+```
+
+## File: show_up/items.py
+```python
+# Define here the models for your scraped items
+#
+# See documentation in:
+# https://docs.scrapy.org/en/latest/topics/items.html
+
+import scrapy
+
+
+class EventItem(scrapy.Item):
+    title = scrapy.Field()
+    date = scrapy.Field()
+    location = scrapy.Field()
+    url = scrapy.Field()
+```
+
 ## File: show_up/pipelines.py
 ```python
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+import json
 
 
-# useful for handling different item types with a single interface
-from itemadapter import ItemAdapter
+class JsonWriterPipeline:
+    def open_spider(self, spider):
+        self.file = open('crypto_events.json', 'w')
 
+    def close_spider(self, spider):
+        self.file.close()
 
-class ShowUpPipeline:
     def process_item(self, item, spider):
+        line = json.dumps(dict(item)) + "\n"
+        self.file.write(line)
         return item
 ```
 
@@ -229,10 +267,16 @@ ADDONS = {}
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "show_up (+http://www.yourdomain.com)"
+USER_AGENT = "ShowUpCrawler/1.0"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
+
+# Configure item pipelines
+# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+ITEM_PIPELINES = {
+   "show_up.pipelines.JsonWriterPipeline": 300,
+}
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
@@ -269,12 +313,6 @@ DOWNLOAD_DELAY = 1
 #    "scrapy.extensions.telnet.TelnetConsole": None,
 #}
 
-# Configure item pipelines
-# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "show_up.pipelines.ShowUpPipeline": 300,
-#}
-
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
@@ -298,27 +336,4 @@ DOWNLOAD_DELAY = 1
 
 # Set settings whose default value is deprecated to a future-proof value
 FEED_EXPORT_ENCODING = "utf-8"
-```
-
-## File: main.py
-```python
-def main():
-    print("Hello from show-up-crawler!")
-
-
-if __name__ == "__main__":
-    main()
-```
-
-## File: pyproject.toml
-```toml
-[project]
-name = "show-up-crawler"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "scrapy>=2.13.3",
-]
 ```

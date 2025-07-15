@@ -1,5 +1,6 @@
 import scrapy
 from show_up.items import EventItem
+from scrapy_playwright.page import PageMethod
 
 
 class LumaSpider(scrapy.Spider):
@@ -7,11 +8,32 @@ class LumaSpider(scrapy.Spider):
     allowed_domains = ["lu.ma"]
     start_urls = ["https://lu.ma/crypto"]
 
+    def start_requests(self):
+        for url in self.start_urls:
+            yield scrapy.Request(
+                url,
+                meta={
+                    "playwright": True,
+                    "playwright_page_methods": [
+                        PageMethod("wait_for_selector", ".event-card-link"),
+                    ],
+                },
+            )
+
     def parse(self, response):
         # Extract event links from the main page
         event_links = response.css('a.event-card-link::attr(href)').getall()
         for link in event_links:
-            yield response.follow(link, self.parse_event)
+            yield response.follow(
+                link,
+                self.parse_event,
+                meta={
+                    "playwright": True,
+                    "playwright_page_methods": [
+                        PageMethod("wait_for_selector", "h1"),
+                    ],
+                },
+            )
 
     def parse_event(self, response):
         # Parse the event page and extract the data
