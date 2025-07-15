@@ -3,7 +3,9 @@
 # *.log
 # tmp/
 
+.gitignore
 .python-version
 uv.lock
 repomix.config.json
 .repomixignore
+scrapy.cfg
