@@ -16,10 +16,16 @@ ADDONS = {}
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "show_up (+http://www.yourdomain.com)"
+USER_AGENT = "ShowUpCrawler/1.0"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
+
+# Configure item pipelines
+# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+ITEM_PIPELINES = {
+   "show_up.pipelines.JsonWriterPipeline": 300,
+}
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
@@ -54,12 +60,6 @@ DOWNLOAD_DELAY = 1
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
 #EXTENSIONS = {
 #    "scrapy.extensions.telnet.TelnetConsole": None,
-#}
-
-# Configure item pipelines
-# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "show_up.pipelines.ShowUpPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)

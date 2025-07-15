@@ -3,6 +3,7 @@
 # *.log
 # tmp/
 
+.agents/
 .gitignore
 .python-version
 uv.lock
