@@ -1,0 +1,9 @@
+# Add patterns to ignore here, one per line
+# Example:
+# *.log
+# tmp/
+
+.python-version
+uv.lock
+repomix.config.json
+.repomixignore
