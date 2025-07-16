@@ -16,11 +16,10 @@ The extracted data should include:
 
 ## 🏗️ Architecture
 
-The project will be built using Python and the Scrapy framework.
+The project will be built using Python.
 
-- **Crawler**: A Scrapy spider will be developed to crawl `lu.ma` and other target websites.
+- **Crawler**: A crawler will be developed to crawl `lu.ma` and other target websites.
 - **Data Storage**: Initially, the scraped data will be stored in a JSON file. In the future, we might consider a database like PostgreSQL or MongoDB.
-- **Configuration**: Project settings and configurations will be managed in `scrapy.cfg` and the Scrapy settings file.
 
 ## 🎨 Code Style & Conventions
 
@@ -28,7 +27,7 @@ The project will be built using Python and the Scrapy framework.
 - **Package Manager**: `uv` will be used for managing Python dependencies.
 - **Testing**: `pytest` will be used for testing.
 - **Linting & Formatting**: `ruff` will be used for linting and formatting to ensure code quality.
-- **Modularity**: Code will be organized into spiders, items, and pipelines as per Scrapy's conventions.
+- **Modularity**: Code will be organized into spiders, items, and pipelines.
 
 ## ⛓️ Constraints
 
