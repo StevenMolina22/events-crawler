@@ -28,13 +28,15 @@ class HtmlFilePipeline:
 
     def process_item(self, item, spider):
         spider.logger.info(f"Processing item in HtmlFilePipeline: {item}")
-        if 'html_content' in item and 'title' in item:
+        if 'html_content' in item and 'title' in item and item['html_content'] is not None:
             title = item['title']
             # Sanitize the title to create a valid filename
             filename = re.sub(r'[^\w\s-]', '', title).strip().replace(' ', '_')
             filepath = os.path.join(self.output_dir, f"{filename}.html")
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(item['html_content'])
+        else:
+            spider.logger.warning(f"Skipping HTML file creation for item: {item['title']} - html_content is None")
         return item
 
 
