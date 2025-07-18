@@ -10,4 +10,12 @@ wheels/
 .venv
 .env
 
+.pytest_cache/
+
 crypto_events.json
+debug_response.html
+enhanced_extraction_results.json
+output/
+
+.kiro
+.ropeproject

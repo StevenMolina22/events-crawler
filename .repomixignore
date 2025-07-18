@@ -11,3 +11,7 @@ repomix.config.json
 .repomixignore
 scrapy.cfg
 output/
+
+crypto_events.json
+debug_response.html
+output/

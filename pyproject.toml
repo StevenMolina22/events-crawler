@@ -8,3 +8,8 @@ dependencies = [
     "scrapy>=2.13.3",
     "scrapy-playwright>=0.0.33",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]

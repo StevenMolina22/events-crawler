@@ -24,10 +24,34 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   "show_up.pipelines.JsonWriterPipeline": 300,
+   # "show_up.pipelines.JsonWriterPipeline": 300,  # Legacy JSON pipeline (commented out)
+   "show_up.pipelines.EnhancedJsonPipeline": 300,  # Enhanced JSON pipeline with structured output
    "show_up.pipelines.HtmlFilePipeline": 301,
    "show_up.pipelines.RawHtmlFilePipeline": 302,
 }
+
+# JSON output settings
+JSON_OUTPUT_FILE = 'crypto_events.json'
+JSON_INDENT = 2  # Pretty-print JSON with 2-space indentation
+JSON_ENSURE_ASCII = False  # Allow non-ASCII characters in JSON
+
+# JSON Extraction Settings
+JSON_EXTRACTION_ENABLED = True  # Enable JSON data extraction from HTML
+JSON_EXTRACTION_PATTERNS = [
+    r'"event":\s*(\{[^}]+(?:\{[^}]*\}[^}]*)*\})',
+    r'window\.__INITIAL_DATA__\s*=\s*({.+?});',
+    r'<script[^>]*>.*?({.*?"event".*?}.*?)</script>',
+    r'<script[^>]*type="application/ld\+json"[^>]*>([^<]+)</script>',
+    r'window\.__PROPS__\s*=\s*({.+?});',
+    r'data-event=(["\'])({.*?})\1',
+]
+JSON_EXTRACTION_FALLBACK = True  # Fall back to HTML parsing if JSON extraction fails
+JSON_EXTRACTION_DEBUG = False  # Enable debug logging for JSON extraction
+
+# Enhanced Item Pipeline Settings
+ENHANCED_JSON_VALIDATION = True  # Enable data validation for extracted items
+ENHANCED_JSON_INCLUDE_METADATA = True  # Include extraction metadata in output
+ENHANCED_JSON_EXTRACTION_STATS = True  # Track extraction statistics
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
