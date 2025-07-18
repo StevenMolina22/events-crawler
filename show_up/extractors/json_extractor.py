@@ -9,7 +9,7 @@ HTML responses, providing robust data extraction with fallback mechanisms.
 import json
 import re
 import logging
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional
 from datetime import datetime
 
 from .base import BaseExtractor

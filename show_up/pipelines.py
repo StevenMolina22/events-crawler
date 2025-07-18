@@ -2,7 +2,7 @@ import json
 import os
 import re
 from datetime import datetime
-from typing import Optional, Dict, List, Any
+from typing import Dict, List, Any
 from show_up.utils.validation import validate_event_data, clean_event_data, get_data_completeness_score
 
 
@@ -46,7 +46,11 @@ class EnhancedJsonPipeline:
         pipeline = cls(output_file=output_file, indent=indent, ensure_ascii=ensure_ascii)
 
         # Store settings reference for configuration
-        pipeline.settings = crawler.settings
+        pipeline.settings = {
+            'ENHANCED_JSON_VALIDATION': crawler.settings.getbool('ENHANCED_JSON_VALIDATION', True),
+            'ENHANCED_JSON_INCLUDE_METADATA': crawler.settings.getbool('ENHANCED_JSON_INCLUDE_METADATA', True),
+            'ENHANCED_JSON_EXTRACTION_STATS': crawler.settings.getbool('ENHANCED_JSON_EXTRACTION_STATS', True)
+        }
         return pipeline
 
     def open_spider(self, spider):
@@ -73,13 +77,14 @@ class EnhancedJsonPipeline:
             # Calculate success rates
             total = self.extraction_stats['total_processed']
             if total > 0:
-                self.metadata['extraction_statistics']['success_rates'] = {
+                success_rates = {
                     'json_extraction_rate': self.extraction_stats['json_extraction'] / total,
                     'html_extraction_rate': self.extraction_stats['html_extraction'] / total,
                     'fallback_rate': self.extraction_stats['fallback_extraction'] / total,
                     'validation_success_rate': 1 - (self.extraction_stats['validation_errors'] / total),
                     'high_quality_rate': self.extraction_stats['high_quality_events'] / total
                 }
+                self.metadata['extraction_statistics']['success_rates'] = success_rates
 
         # Create the final JSON structure
         output = {
@@ -122,8 +127,8 @@ class EnhancedJsonPipeline:
 
             # Create a copy of the item and remove HTML fields
             item_copy = dict(item)
-            html_content = item_copy.pop('html_content', None)
-            raw_html = item_copy.pop('raw_html', None)
+            item_copy.pop('html_content', None)
+            item_copy.pop('raw_html', None)
 
             # Track extraction method
             extraction_method = item_copy.get('extraction_method', 'unknown')

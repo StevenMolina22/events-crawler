@@ -9,7 +9,7 @@ before storage.
 import re
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, List
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 import scrapy
 from show_up.items import EventItem
 from show_up.extractors import JsonExtractor
-from show_up.utils.validation import validate_event_data, clean_event_data
+from show_up.utils.validation import validate_event_data
 from scrapy_playwright.page import PageMethod
 from typing import Dict, Any, Optional
 

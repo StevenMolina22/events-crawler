@@ -64,7 +64,7 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
         self.assertEqual(pipeline.output_file, 'custom_enhanced_output.json')
         self.assertEqual(pipeline.indent, 4)
         self.assertEqual(pipeline.ensure_ascii, True)
-        self.assertIsNotNone(pipeline.settings)
+        self.assertIsInstance(pipeline.settings, dict)
 
     def test_from_crawler_with_default_settings(self):
         """Test that pipeline uses default settings when not specified."""
@@ -194,10 +194,12 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
     def test_process_item_with_validation_enabled(self):
         """Test processing item with validation enabled."""
         # Mock settings to enable validation
-        self.pipeline.settings = {
+        # Mock settings to enable validation
+        mock_settings = {
             'ENHANCED_JSON_VALIDATION': True,
             'ENHANCED_JSON_INCLUDE_METADATA': True
         }
+        self.pipeline.settings = mock_settings
 
         item = EventItem()
         item['title'] = 'Test Event'
@@ -223,10 +225,12 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
     def test_process_item_with_validation_disabled(self):
         """Test processing item with validation disabled."""
         # Mock settings to disable validation
-        self.pipeline.settings = {
+        # Mock settings to disable validation
+        mock_settings = {
             'ENHANCED_JSON_VALIDATION': False,
             'ENHANCED_JSON_INCLUDE_METADATA': False
         }
+        self.pipeline.settings = mock_settings
 
         item = EventItem()
         item['title'] = 'Test Event'
@@ -291,7 +295,9 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
     def test_close_spider_writes_structured_json(self):
         """Test that close_spider writes properly structured JSON."""
         # Mock settings for extraction stats
-        self.pipeline.settings = {'ENHANCED_JSON_EXTRACTION_STATS': True}
+        # Mock settings for extraction stats
+        mock_settings = {'ENHANCED_JSON_EXTRACTION_STATS': True}
+        self.pipeline.settings = mock_settings
 
         # Add some test items
         items = [
@@ -383,7 +389,9 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
     def test_close_spider_without_extraction_stats(self):
         """Test close_spider when extraction stats are disabled."""
         # Mock settings to disable extraction stats
-        self.pipeline.settings = {'ENHANCED_JSON_EXTRACTION_STATS': False}
+        # Mock settings to disable extraction stats
+        mock_settings = {'ENHANCED_JSON_EXTRACTION_STATS': False}
+        self.pipeline.settings = mock_settings
 
         item = EventItem()
         item['title'] = 'Test Event'
@@ -403,10 +411,12 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
     def test_extraction_stats_high_quality_tracking(self):
         """Test that high quality events are tracked correctly."""
         # Mock settings to enable validation
-        self.pipeline.settings = {
+        # Mock settings to enable validation
+        mock_settings = {
             'ENHANCED_JSON_VALIDATION': True,
             'ENHANCED_JSON_INCLUDE_METADATA': True
         }
+        self.pipeline.settings = mock_settings
 
         # High quality item (complete data)
         high_quality_item = EventItem()
@@ -438,7 +448,9 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
     def test_validation_error_handling(self):
         """Test handling of validation errors."""
         # Mock settings to enable validation
-        self.pipeline.settings = {'ENHANCED_JSON_VALIDATION': True}
+        # Mock settings to enable validation
+        mock_settings = {'ENHANCED_JSON_VALIDATION': True}
+        self.pipeline.settings = mock_settings
 
         # Create item that will cause validation error
         item = EventItem()

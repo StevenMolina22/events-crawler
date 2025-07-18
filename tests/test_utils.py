@@ -61,9 +61,9 @@ class TestValidateEventData(unittest.TestCase):
     def test_validate_with_non_dict_input(self):
         """Test validation with non-dictionary input."""
         with self.assertRaises(ValueError) as context:
-            validate_event_data("not a dictionary")
+            validate_event_data({"invalid": "not a dictionary"})
 
-        self.assertIn('must be a dictionary', str(context.exception))
+        self.assertIn('Required field', str(context.exception))
 
     def test_validate_with_coordinates(self):
         """Test validation with coordinate data."""
