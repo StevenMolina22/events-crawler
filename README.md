@@ -7,6 +7,7 @@ A powerful web crawler for extracting comprehensive crypto event data from Luma 
 - **Enhanced JSON Extraction**: Extracts complete event data from embedded JSON structures
 - **High Data Quality**: Achieves 87.2% average completeness vs 25% with basic HTML parsing
 - **Comprehensive Event Data**: Dates, locations, coordinates, organizers, and metadata
+- **Scrapy Export Support**: Native support for Scrapy's `-o` exporters (yields dict format)
 - **Robust Architecture**: Modular design with fallback mechanisms
 - **Playwright Integration**: Handles JavaScript-heavy pages effectively
 - **Data Validation**: Comprehensive validation and cleaning of extracted data
@@ -65,6 +66,12 @@ uv run scrapy crawl luma
 
 # Run with custom settings
 uv run scrapy crawl luma -s JSON_OUTPUT_FILE=my_events.json
+
+# Use Scrapy's built-in exporters (spider yields dict format natively)
+uv run scrapy crawl luma -o events.json
+uv run scrapy crawl luma -o events.csv
+uv run scrapy crawl luma -o events.jsonl
+uv run scrapy crawl luma -o events.xml
 
 # Test enhanced extraction on existing HTML files
 uv run python test_enhanced_extraction.py

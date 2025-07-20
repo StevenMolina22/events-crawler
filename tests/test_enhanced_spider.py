@@ -168,10 +168,12 @@ class TestLumaSpider(unittest.TestCase):
                 # Call parse_event
                 result = list(self.spider.parse_event(response))
 
-                # Should yield one EventItem
+                # Should yield one dict
                 self.assertEqual(len(result), 1)
                 item = result[0]
-                self.assertIsInstance(item, EventItem)
+                self.assertIsInstance(item, dict)
+                self.assertIn("title", item)
+                self.assertIn("url", item)
 
                 # Check item fields
                 self.assertEqual(item["title"], "Test Event")
@@ -225,9 +227,12 @@ class TestLumaSpider(unittest.TestCase):
                 # Call parse_event
                 result = list(self.spider.parse_event(response))
 
-                # Should yield one EventItem
+                # Should yield one dict
                 self.assertEqual(len(result), 1)
                 item = result[0]
+                self.assertIsInstance(item, dict)
+                self.assertIn("title", item)
+                self.assertIn("url", item)
 
                 # Check that fallback was used
                 self.assertEqual(item["extraction_method"], "html_fallback")
@@ -265,9 +270,12 @@ class TestLumaSpider(unittest.TestCase):
                 # Call parse_event
                 result = list(self.spider.parse_event(response))
 
-                # Should still yield one EventItem with fallback data
+                # Should still yield one dict with fallback data
                 self.assertEqual(len(result), 1)
                 item = result[0]
+                self.assertIsInstance(item, dict)
+                self.assertIn("title", item)
+                self.assertIn("url", item)
 
                 # Check that fallback title was extracted
                 self.assertEqual(item["title"], "Test Event")

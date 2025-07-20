@@ -3,7 +3,7 @@ from show_up.items import EventItem
 from show_up.extractors import JsonExtractor
 from show_up.utils.validation import validate_event_data
 from scrapy_playwright.page import PageMethod
-from typing import Dict, Any, Optional
+from typing import Any
 
 
 class LumaSpider(scrapy.Spider):
@@ -86,7 +86,11 @@ class LumaSpider(scrapy.Spider):
             )
 
     def parse_event(self, response):
-        """Parse event page and extract complete event data using JSON extraction."""
+        """Parse event page and extract complete event data using JSON extraction.
+        
+        Returns:
+            dict: Event data as a dictionary for JSON serialization.
+        """
         # Initialize event item
         item = EventItem()
 
@@ -131,9 +135,12 @@ class LumaSpider(scrapy.Spider):
             self.logger.error(f"Data validation failed for {response.url}: {e}")
             # Continue with unvalidated data
 
-        yield item
+        # Convert to dictionary for JSON serialization (required for -o events.json)
+        event_dict: dict[str, Any] = dict(item)
+        yield event_dict
+        return  # prevents the old `yield item`
 
-    def _extract_with_json(self, response) -> Optional[Dict[str, Any]]:
+    def _extract_with_json(self, response) -> dict[str, Any] | None:
         """Extract event data using JSON extraction."""
         if not self.settings.getbool("JSON_EXTRACTION_ENABLED", True):
             return None
@@ -154,7 +161,7 @@ class LumaSpider(scrapy.Spider):
 
         return None
 
-    def _extract_with_html_selectors(self, response) -> Optional[Dict[str, Any]]:
+    def _extract_with_html_selectors(self, response) -> dict[str, Any] | None:
         """Extract event data using HTML selectors (fallback method)."""
         self.logger.info(f"Falling back to HTML selector extraction for {response.url}")
 
@@ -223,7 +230,7 @@ class LumaSpider(scrapy.Spider):
 
         return "Unknown Event"
 
-    def _populate_item(self, item: EventItem, data: Dict[str, Any]) -> None:
+    def _populate_item(self, item: EventItem, data: dict[str, Any]) -> None:
         """Populate EventItem with extracted data."""
         # Map extracted data to item fields
         field_mapping = {
@@ -256,7 +263,7 @@ class LumaSpider(scrapy.Spider):
         if html_content:
             item["html_content"] = html_content
 
-    def _get_html_content(self, item: EventItem) -> Optional[str]:
+    def _get_html_content(self, item: EventItem) -> str | None:
         """Extract HTML content for the item."""
         raw_html = item.get("raw_html", "")
         if not raw_html:
