@@ -36,6 +36,18 @@ The content is organized as follows:
 
 # Directory Structure
 ```
+.kiro/
+  specs/
+    enhanced-json-event-storage/
+      design.md
+      requirements.md
+      tasks.md
+output/
+  debug.json
+  evenbrite.json
+  eventbrite_events.json
+  luma.html
+  luma_events.json
 show_up/
   extractors/
     __init__.py
@@ -52,14 +64,73 @@ show_up/
   middlewares.py
   pipelines.py
   settings.py
+tests/
+  test_enhanced_pipelines.py
+  test_enhanced_spider.py
+  test_extractors.py
+  test_pipelines.py
+  test_utils.py
 .env.local
 main.py
 pyproject.toml
 README.md
+repomix.config.json
+scrapy.cfg
 test_enhanced_extraction.py
+uv.lock
 ```
 
 # Files
+
+- .agents/AGENT.md
+- .agents/CONTEXT.md
+- .agents/PLANNING.md
+- .agents/RULES.md
+- .agents/TASKS.md
+- .venv/bin/activate_this.py
+- .venv/bin/jp.py
+- .env.local
+- .kiro/specs/enhanced-json-event-storage/design.md
+- .kiro/specs/enhanced-json-event-storage/requirements.md
+- .kiro/specs/enhanced-json-event-storage/tasks.md
+- .python-version
+- .repomixignore
+- .ruff_cache/0.11.9/14993961347254167462
+- .ruff_cache/0.11.9/16966933536205744969
+- .ruff_cache/0.11.9/6505350554833522355
+- .ruff_cache/CACHEDIR.TAG
+- README.md
+- generate_context_structure.py
+- inventory_findings.md
+- main.py
+- output/debug.json
+- output/evenbrite.json
+- output/eventbrite_events.json
+- output/luma.html
+- output/luma_events.json
+- pyproject.toml
+- repomix.config.json
+- scrapy.cfg
+- show_up/__init__.py
+- show_up/extractors/__init__.py
+- show_up/extractors/base.py
+- show_up/extractors/json_extractor.py
+- show_up/items.py
+- show_up/middlewares.py
+- show_up/pipelines.py
+- show_up/settings.py
+- show_up/spiders/__init__.py
+- show_up/spiders/eventbrite.py
+- show_up/spiders/luma.py
+- show_up/utils/__init__.py
+- show_up/utils/validation.py
+- test_enhanced_extraction.py
+- tests/test_enhanced_pipelines.py
+- tests/test_enhanced_spider.py
+- tests/test_extractors.py
+- tests/test_pipelines.py
+- tests/test_utils.py
+- uv.lock
 
 ## File: .env.local
 ````
