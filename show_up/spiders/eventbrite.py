@@ -38,7 +38,7 @@ class EventbriteSpider(scrapy.Spider):
         if not events:
             self.logger.warning("No events found in server data.")
             return
-        
+
         results = events.get("results", [])
         if not results:
             self.logger.warning("No results found in server data.")
@@ -48,8 +48,12 @@ class EventbriteSpider(scrapy.Spider):
             yield {
                 'title': event.get('name'),
                 'url': event.get('url'),
+                'summary': event.get('summary'),
                 'startDate': event.get('start_date'),
                 'endDate': event.get('end_date'),
                 'location': event.get('primary_venue', {}).get('name'),
                 'organizer': event.get('primary_organizer', {}).get('name'),
+                'tags': [tag.get('display_name') for tag in event.get('tags', [])],
+                'image': event.get('image', {}).get('url'),
+                'ticket_availability': event.get('ticket_availability', {}),
             }
