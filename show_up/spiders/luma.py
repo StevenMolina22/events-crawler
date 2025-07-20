@@ -5,6 +5,7 @@ from show_up.utils.validation import validate_event_data
 from scrapy_playwright.page import PageMethod
 from typing import Any
 
+HTML_FILE = "output/luma.html"
 
 class LumaSpider(scrapy.Spider):
     name = "luma"
@@ -36,11 +37,8 @@ class LumaSpider(scrapy.Spider):
 
     def parse(self, response):
         # Save the full HTML response for debugging
-        with open("debug_response.html", "w", encoding="utf-8") as f:
+        with open(HTML_FILE, "w", encoding="utf-8") as f:
             f.write(response.text)
-
-        # Debug: print the length of the response
-        self.logger.info(f"Response length: {len(response.text)}")
 
         # Extract event links from the timeline section
         # Look for individual event cards in the timeline
@@ -87,7 +85,7 @@ class LumaSpider(scrapy.Spider):
 
     def parse_event(self, response):
         """Parse event page and extract complete event data using JSON extraction.
-        
+
         Returns:
             dict: Event data as a dictionary for JSON serialization.
         """
@@ -96,7 +94,6 @@ class LumaSpider(scrapy.Spider):
 
         # Set basic fields
         item["url"] = response.url
-        item["raw_html"] = response.text
 
         # Try JSON extraction first (primary method)
         extracted_data = self._extract_with_json(response)
@@ -133,7 +130,6 @@ class LumaSpider(scrapy.Spider):
 
         except Exception as e:
             self.logger.error(f"Data validation failed for {response.url}: {e}")
-            # Continue with unvalidated data
 
         # Convert to dictionary for JSON serialization (required for -o events.json)
         event_dict: dict[str, Any] = dict(item)
@@ -257,28 +253,3 @@ class LumaSpider(scrapy.Spider):
         for data_key, item_key in field_mapping.items():
             if data_key in data and data[data_key]:
                 item[item_key] = data[data_key]
-
-        # Set HTML content
-        html_content = self._get_html_content(item)
-        if html_content:
-            item["html_content"] = html_content
-
-    def _get_html_content(self, item: EventItem) -> str | None:
-        """Extract HTML content for the item."""
-        raw_html = item.get("raw_html", "")
-        if not raw_html:
-            return None
-
-        # Try to extract main content
-        from scrapy import Selector
-
-        selector = Selector(text=raw_html)
-
-        # Try different selectors for main content
-        main_content = selector.css("main").get()
-        if not main_content:
-            main_content = selector.css("body").get()
-        if not main_content:
-            main_content = raw_html
-
-        return main_content

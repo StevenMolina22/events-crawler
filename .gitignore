@@ -17,6 +17,7 @@ enhanced_extraction_results.json
 output/
 crypto_events.json
 debug_response.html
+events.json
 response_eventbrite.html
 
 .kiro

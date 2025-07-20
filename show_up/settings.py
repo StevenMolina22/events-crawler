@@ -26,12 +26,13 @@ ROBOTSTXT_OBEY = True
 ITEM_PIPELINES = {
     # "show_up.pipelines.JsonWriterPipeline": 300,  # Legacy JSON pipeline (commented out)
     "show_up.pipelines.EnhancedJsonPipeline": 300,  # Enhanced JSON pipeline with structured output
-    "show_up.pipelines.HtmlFilePipeline": 301,
-    "show_up.pipelines.RawHtmlFilePipeline": 302,
+    # HTML output pipelines removed - JSON output only
+    # "show_up.pipelines.HtmlFilePipeline": 301,
+    # "show_up.pipelines.RawHtmlFilePipeline": 302,
 }
 
 # JSON output settings
-JSON_OUTPUT_FILE = "crypto_events.json"
+JSON_OUTPUT_FILE = "output/debug.json"
 JSON_INDENT = 2  # Pretty-print JSON with 2-space indentation
 JSON_ENSURE_ASCII = False  # Allow non-ASCII characters in JSON
 

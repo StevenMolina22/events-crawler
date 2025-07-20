@@ -1,6 +1,6 @@
 # 🚀 Show Up Crawler
 
-A powerful web crawler for extracting comprehensive crypto event data from Luma (lu.ma) using advanced JSON extraction techniques.
+A powerful web crawler for extracting comprehensive crypto event data from Luma (lu.ma) using advanced JSON extraction techniques. Outputs structured JSON data only.
 
 ## ✨ Features
 
@@ -25,7 +25,7 @@ A powerful web crawler for extracting comprehensive crypto event data from Luma 
 ## 🏗️ Architecture
 
 ```
-Scrapy Spider → Playwright → JsonExtractor → Enhanced EventItem → Enhanced JSON Pipeline → Complete Events JSON
+Scrapy Spider → Playwright → JsonExtractor → Enhanced EventItem → Enhanced JSON Pipeline → Structured JSON Output
 ```
 
 ### Core Components
@@ -61,10 +61,10 @@ uv sync
 ### Basic Usage
 
 ```bash
-# Run the enhanced crawler
+# Run the enhanced crawler - outputs structured JSON only
 uv run scrapy crawl luma
 
-# Run with custom settings
+# Run with custom JSON output file
 uv run scrapy crawl luma -s JSON_OUTPUT_FILE=my_events.json
 
 # Use Scrapy's built-in exporters (spider yields dict format natively)
@@ -72,6 +72,11 @@ uv run scrapy crawl luma -o events.json
 uv run scrapy crawl luma -o events.csv
 uv run scrapy crawl luma -o events.jsonl
 uv run scrapy crawl luma -o events.xml
+
+# The crawler produces ONLY structured JSON data:
+# - No HTML files are saved
+# - No raw HTML processing
+# - Clean, comprehensive JSON output with event data
 
 # Test enhanced extraction on existing HTML files
 uv run python test_enhanced_extraction.py
@@ -109,7 +114,7 @@ show-up-crawler/
 │   ├── test_enhanced_pipelines.py # Pipeline tests
 │   ├── test_pipelines.py     # Legacy pipeline tests
 │   └── test_utils.py         # Validation utility tests
-├── output/                    # Extracted data and HTML files
+├── output/                    # Extracted JSON data
 ├── test_enhanced_extraction.py # Integration test script
 └── README.md                 # This file
 ```
@@ -141,11 +146,19 @@ ENHANCED_JSON_EXTRACTION_STATS = True
 JSON_OUTPUT_FILE = 'crypto_events.json'
 JSON_INDENT = 2
 JSON_ENSURE_ASCII = False
+
+# HTML output pipelines disabled - JSON output only
+# No HTML files are generated, only structured JSON data
+ITEM_PIPELINES = {
+    "show_up.pipelines.EnhancedJsonPipeline": 300,
+    # "show_up.pipelines.HtmlFilePipeline": 301,        # DISABLED
+    # "show_up.pipelines.RawHtmlFilePipeline": 302,     # DISABLED
+}
 ```
 
 ### Output Format
 
-The crawler generates structured JSON with comprehensive event data and metadata:
+The crawler generates structured JSON data with comprehensive event information and metadata:
 
 ```json
 {
@@ -306,6 +319,15 @@ Events are automatically scored for completeness using weighted field importance
 
 ## 🛠️ Development
 
+### Current Output Behavior
+The crawler has been streamlined to focus exclusively on JSON data extraction:
+
+- **✅ JSON Output**: Complete structured event data with metadata
+- **🚫 HTML Files**: No HTML files are saved (removed for efficiency)
+- **🚫 Raw HTML**: No raw HTML processing or storage
+- **📊 Statistics**: Comprehensive extraction statistics in JSON output
+- **🔧 Performance**: Optimized for JSON extraction only
+
 ### Adding New Extractors
 
 1. Create extractor class inheriting from `BaseExtractor`
@@ -365,8 +387,8 @@ The enhanced pipeline tracks detailed statistics:
 export SCRAPY_SETTINGS_MODULE=show_up.settings
 uv run scrapy crawl luma -L DEBUG
 
-# Save debug HTML files
-JSON_EXTRACTION_DEBUG = True
+# Enable JSON extraction debug mode
+uv run scrapy crawl luma -s JSON_EXTRACTION_DEBUG=True
 
 # Test extraction on specific HTML file
 uv run python -c "
@@ -376,6 +398,9 @@ with open('output/html/event.html', 'r') as f:
     result = extractor.extract(f.read())
 print(result)
 "
+
+# Check JSON output only (no HTML files generated)
+cat crypto_events.json | jq '.metadata.extraction_statistics'
 ```
 
 ### Debugging Tools
@@ -442,14 +467,17 @@ This project is licensed under the MIT License. See LICENSE file for details.
 ## 📝 Implementation Status
 
 ✅ **Complete**: Enhanced JSON extraction system with 100% success rate
-✅ **Complete**: Comprehensive test coverage (65+ tests)
+✅ **Complete**: Comprehensive test coverage (110+ tests)
 ✅ **Complete**: Data validation and quality scoring
 ✅ **Complete**: Production-ready pipelines with statistics
 ✅ **Complete**: Integration testing with real HTML files
 ✅ **Complete**: Documentation and usage examples
+✅ **Complete**: JSON-only output (HTML file generation removed)
+✅ **Complete**: Streamlined pipeline configuration
 
 ---
 
 **Show Up Crawler** - Making crypto event discovery comprehensive and reliable! 🚀
 
-*Enhanced JSON extraction system achieving 87.2% data completeness with 100% success rate*
+*Enhanced JSON extraction system achieving 87.2% data completeness with 100% success rate*  
+*Streamlined JSON-only output for clean, structured event data*

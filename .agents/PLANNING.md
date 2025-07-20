@@ -30,7 +30,7 @@ The project will be built using Python and the Scrapy framework with Playwright 
 
 ### Data Flow Architecture:
 ```
-Scrapy Spider → Playwright → JsonExtractor → Enhanced EventItem → Enhanced JSON Pipeline → Complete Events JSON
+Scrapy Spider → Playwright → JsonExtractor → Enhanced EventItem → Enhanced JSON Pipeline → Structured JSON Output
 ```
 
 ### Component Structure:

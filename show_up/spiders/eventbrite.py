@@ -2,7 +2,8 @@ import scrapy
 import json
 import re
 
-HTML_FILE = "res_eventbrite.html"
+HTML_FILE = "output/eventbrite.html"
+JSON_FILE = "output/evenbrite.json"
 
 
 class EventbriteSpider(scrapy.Spider):
@@ -28,7 +29,7 @@ class EventbriteSpider(scrapy.Spider):
 
         try:
             server_data = json.loads(match.group(1))
-            with open("server_data.json", "w", encoding="utf-8") as f:
+            with open(JSON_FILE, "w", encoding="utf-8") as f:
                 json.dump(server_data, f, ensure_ascii=False, indent=4)
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse server data: {e}")

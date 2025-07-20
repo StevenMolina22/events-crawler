@@ -549,51 +549,8 @@ class TestLumaSpider(unittest.TestCase):
         self.assertNotIn("date", dict(item))
         self.assertNotIn("location", dict(item))
 
-    def test_get_html_content_with_main_tag(self):
-        """Test _get_html_content method with main tag."""
-        item = EventItem()
-        item["raw_html"] = """
-        <html>
-            <body>
-                <header>Header</header>
-                <main>Main content</main>
-                <footer>Footer</footer>
-            </body>
-        </html>
-        """
-
-        result = self.spider._get_html_content(item)
-
-        # Should extract main content
-        if result:
-            self.assertIn("<main>Main content</main>", result)
-
-    def test_get_html_content_with_body_fallback(self):
-        """Test _get_html_content method with body fallback."""
-        item = EventItem()
-        item["raw_html"] = """
-        <html>
-            <body>
-                <div>Content</div>
-            </body>
-        </html>
-        """
-
-        result = self.spider._get_html_content(item)
-
-        # Should extract body content
-        if result:
-            self.assertIn("<body>", result)
-            self.assertIn("<div>Content</div>", result)
-
-    def test_get_html_content_with_no_raw_html(self):
-        """Test _get_html_content method with no raw HTML."""
-        item = EventItem()
-
-        result = self.spider._get_html_content(item)
-
-        # Should return None
-        self.assertIsNone(result)
+    # HTML content processing tests removed - JSON output only
+    # The spider no longer processes HTML content, only extracts JSON data
 
     def test_validation_success(self):
         """Test successful validation in parse_event."""

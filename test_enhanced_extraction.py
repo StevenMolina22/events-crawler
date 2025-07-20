@@ -242,9 +242,9 @@ def save_detailed_results(results: List[Dict[str, Any]]):
 
 
 def compare_with_original_data():
-    """Compare enhanced extraction with original crypto_events.json."""
+    """Compare enhanced extraction with original output/debug.json."""
 
-    original_file = "crypto_events.json"
+    original_file = "output/debug.json"
 
     if not os.path.exists(original_file):
         print(f"⚠️  Original file {original_file} not found for comparison")
@@ -304,7 +304,7 @@ def main():
     print("💡 Next steps:")
     print("   1. Review the enhanced_extraction_results.json file")
     print("   2. Run the enhanced spider: scrapy crawl luma")
-    print("   3. Compare the new crypto_events.json with the original")
+    print("   3. Compare the new output/debug.json with the original")
 
 
 if __name__ == "__main__":

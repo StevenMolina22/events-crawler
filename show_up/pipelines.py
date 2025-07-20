@@ -9,6 +9,7 @@ from show_up.utils.validation import (
     get_data_completeness_score,
 )
 
+OUTPUT_FILE = "output/luma_debug.json"
 
 class EnhancedJsonPipeline:
     """
@@ -21,14 +22,14 @@ class EnhancedJsonPipeline:
     - Basic validation of event data
 
     Configuration settings (in settings.py):
-    - JSON_OUTPUT_FILE: Path to the output JSON file (default: 'crypto_events.json')
+    - JSON_OUTPUT_FILE: Path to the output JSON file (default: OUTPUT_FILE)
     - JSON_INDENT: Number of spaces for indentation (default: 2)
     - JSON_ENSURE_ASCII: Whether to escape non-ASCII characters (default: False)
     """
 
     def __init__(
         self,
-        output_file: str = "crypto_events.json",
+        output_file: str = OUTPUT_FILE,
         indent: int = 2,
         ensure_ascii: bool = False,
     ):
@@ -49,7 +50,7 @@ class EnhancedJsonPipeline:
     @classmethod
     def from_crawler(cls, crawler):
         # Get settings from crawler
-        output_file = crawler.settings.get("JSON_OUTPUT_FILE", "crypto_events.json")
+        output_file = crawler.settings.get("JSON_OUTPUT_FILE", OUTPUT_FILE)
         indent = crawler.settings.getint("JSON_INDENT", 2)
         ensure_ascii = crawler.settings.getbool("JSON_ENSURE_ASCII", False)
         pipeline = cls(
@@ -279,7 +280,7 @@ class EnhancedJsonPipeline:
 # Legacy pipeline kept for backward compatibility
 class JsonWriterPipeline:
     def open_spider(self, spider):
-        self.file = open("crypto_events.json", "w")
+        self.file = open(OUTPUT_FILE, "w")
         spider.logger.warning(
             "Using deprecated JsonWriterPipeline. Consider switching to EnhancedJsonPipeline."
         )
