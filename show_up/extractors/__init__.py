@@ -11,4 +11,4 @@ Available extractors:
 
 from .json_extractor import JsonExtractor
 
-__all__ = ['JsonExtractor']
+__all__ = ["JsonExtractor"]

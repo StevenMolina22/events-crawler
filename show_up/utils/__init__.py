@@ -9,6 +9,10 @@ Available utilities:
 - Common data processing functions
 """
 
-from .validation import validate_event_data, clean_event_data, get_data_completeness_score
+from .validation import (
+    validate_event_data,
+    clean_event_data,
+    get_data_completeness_score,
+)
 
-__all__ = ['validate_event_data', 'clean_event_data', 'get_data_completeness_score']
+__all__ = ["validate_event_data", "clean_event_data", "get_data_completeness_score"]

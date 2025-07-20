@@ -66,7 +66,7 @@ class BaseExtractor(ABC):
         Returns:
             String identifier for this extraction method
         """
-        return self.__class__.__name__.lower().replace('extractor', '')
+        return self.__class__.__name__.lower().replace("extractor", "")
 
     def validate_extracted_data(self, data: Dict[str, Any]) -> bool:
         """
@@ -82,7 +82,7 @@ class BaseExtractor(ABC):
             return False
 
         # Check for required fields
-        required_fields = self.config.get('required_fields', [])
+        required_fields = self.config.get("required_fields", [])
         for field in required_fields:
             if field not in data or not data[field]:
                 self.logger.warning(f"Missing required field: {field}")
@@ -90,7 +90,9 @@ class BaseExtractor(ABC):
 
         return True
 
-    def log_extraction_result(self, success: bool, data: Optional[Dict[str, Any]] = None):
+    def log_extraction_result(
+        self, success: bool, data: Optional[Dict[str, Any]] = None
+    ):
         """
         Log the result of an extraction attempt.
 
@@ -99,10 +101,14 @@ class BaseExtractor(ABC):
             data: Extracted data (if successful)
         """
         if success and data:
-            self.logger.info(f"Successfully extracted data using {self.get_extraction_method()}")
+            self.logger.info(
+                f"Successfully extracted data using {self.get_extraction_method()}"
+            )
             self.logger.debug(f"Extracted fields: {list(data.keys())}")
         else:
-            self.logger.warning(f"Failed to extract data using {self.get_extraction_method()}")
+            self.logger.warning(
+                f"Failed to extract data using {self.get_extraction_method()}"
+            )
 
 
 class MultiExtractor:
@@ -140,11 +146,13 @@ class MultiExtractor:
                     result = extractor.extract(content, **kwargs)
                     if result and extractor.validate_extracted_data(result):
                         # Add extraction method to the result
-                        result['extraction_method'] = extractor.get_extraction_method()
+                        result["extraction_method"] = extractor.get_extraction_method()
                         extractor.log_extraction_result(True, result)
                         return result
                 except Exception as e:
-                    self.logger.warning(f"Extractor {extractor.__class__.__name__} failed: {e}")
+                    self.logger.warning(
+                        f"Extractor {extractor.__class__.__name__} failed: {e}"
+                    )
                     extractor.log_extraction_result(False)
                     continue
 

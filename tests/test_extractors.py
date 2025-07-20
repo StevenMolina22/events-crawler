@@ -35,21 +35,16 @@ class TestJsonExtractor(unittest.TestCase):
                 "city": "Buenos Aires",
                 "country": "Argentina",
                 "full_address": "Test Address 123, Buenos Aires, Argentina",
-                "place_id": "ChIJ_test123"
+                "place_id": "ChIJ_test123",
             },
-            "coordinate": {
-                "latitude": -34.6037,
-                "longitude": -58.3816
-            },
-            "user": {
-                "name": "Test Organizer"
-            },
-            "description": "Test event description"
+            "coordinate": {"latitude": -34.6037, "longitude": -58.3816},
+            "user": {"name": "Test Organizer"},
+            "description": "Test event description",
         }
 
     def test_can_extract_with_json_indicators(self):
         """Test can_extract returns True for content with JSON indicators."""
-        html_with_json = '''
+        html_with_json = """
         <html>
             <body>
                 <script>
@@ -57,20 +52,20 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         self.assertTrue(self.extractor.can_extract(html_with_json))
 
     def test_can_extract_without_json_indicators(self):
         """Test can_extract returns False for content without JSON indicators."""
-        html_without_json = '''
+        html_without_json = """
         <html>
             <body>
                 <h1>Test Page</h1>
                 <p>No JSON data here</p>
             </body>
         </html>
-        '''
+        """
 
         self.assertFalse(self.extractor.can_extract(html_without_json))
 
@@ -81,7 +76,7 @@ class TestJsonExtractor(unittest.TestCase):
 
     def test_extract_with_direct_event_pattern(self):
         """Test extraction with direct event object pattern."""
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -89,20 +84,22 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content, url="https://lu.ma/test")
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['title'], "Test Event")
-            self.assertEqual(result['date'], "2025-07-21T22:30:00.000Z")
-            self.assertEqual(result['location'], "Test Address 123, Buenos Aires, Argentina")
-            self.assertEqual(result['extraction_method'], 'json')
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["date"], "2025-07-21T22:30:00.000Z")
+            self.assertEqual(
+                result["location"], "Test Address 123, Buenos Aires, Argentina"
+            )
+            self.assertEqual(result["extraction_method"], "json")
 
     def test_extract_with_initial_data_pattern(self):
         """Test extraction with window.__INITIAL_DATA__ pattern."""
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -110,25 +107,21 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content, url="https://lu.ma/test")
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['title'], "Test Event")
-            self.assertEqual(result['api_id'], "evt-test123")
-            self.assertEqual(result['event_type'], "independent")
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["api_id"], "evt-test123")
+            self.assertEqual(result["event_type"], "independent")
 
     def test_extract_with_nested_event_data(self):
         """Test extraction with nested event data structure."""
-        nested_data = {
-            "props": {
-                "event": self.sample_event_data
-            }
-        }
+        nested_data = {"props": {"event": self.sample_event_data}}
 
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -136,18 +129,18 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['title'], "Test Event")
-            self.assertEqual(result['timezone'], "America/Buenos_Aires")
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["timezone"], "America/Buenos_Aires")
 
     def test_extract_location_data(self):
         """Test comprehensive location data extraction."""
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -155,26 +148,30 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['location'], "Test Address 123, Buenos Aires, Argentina")
-            self.assertEqual(result['full_address'], "Test Address 123, Buenos Aires, Argentina")
-            self.assertEqual(result['city'], "Buenos Aires")
-            self.assertEqual(result['country'], "Argentina")
-            self.assertEqual(result['place_id'], "ChIJ_test123")
+            self.assertEqual(
+                result["location"], "Test Address 123, Buenos Aires, Argentina"
+            )
+            self.assertEqual(
+                result["full_address"], "Test Address 123, Buenos Aires, Argentina"
+            )
+            self.assertEqual(result["city"], "Buenos Aires")
+            self.assertEqual(result["country"], "Argentina")
+            self.assertEqual(result["place_id"], "ChIJ_test123")
 
             # Check coordinates
-            self.assertIn('coordinates', result)
-            self.assertEqual(result['coordinates']['latitude'], -34.6037)
-            self.assertEqual(result['coordinates']['longitude'], -58.3816)
+            self.assertIn("coordinates", result)
+            self.assertEqual(result["coordinates"]["latitude"], -34.6037)
+            self.assertEqual(result["coordinates"]["longitude"], -58.3816)
 
     def test_extract_with_url_construction(self):
         """Test URL construction from event data."""
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -182,17 +179,17 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['url'], "https://lu.ma/test-event")
+            self.assertEqual(result["url"], "https://lu.ma/test-event")
 
     def test_extract_with_malformed_json(self):
         """Test handling of malformed JSON."""
-        html_content = '''
+        html_content = """
         <html>
             <body>
                 <script>
@@ -200,7 +197,7 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
@@ -208,7 +205,7 @@ class TestJsonExtractor(unittest.TestCase):
 
     def test_extract_with_no_event_data(self):
         """Test extraction when no event data is present."""
-        html_content = '''
+        html_content = """
         <html>
             <body>
                 <script>
@@ -216,7 +213,7 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
@@ -225,7 +222,9 @@ class TestJsonExtractor(unittest.TestCase):
     def test_clean_json_string(self):
         """Test JSON string cleaning functionality."""
         # Test HTML entity cleaning
-        dirty_json = '{"name": "Test &quot;Event&quot;", "location": "Test &amp; Place"}'
+        dirty_json = (
+            '{"name": "Test &quot;Event&quot;", "location": "Test &amp; Place"}'
+        )
         cleaned = self.extractor._clean_json_string(dirty_json)
         if cleaned:
             self.assertIn('"Test "Event""', cleaned)
@@ -240,49 +239,43 @@ class TestJsonExtractor(unittest.TestCase):
         comment_json = '{"name": "Test", /* comment */ "id": 1}'
         cleaned = self.extractor._clean_json_string(comment_json)
         if cleaned:
-            self.assertNotIn('/*', cleaned)
-            self.assertNotIn('*/', cleaned)
+            self.assertNotIn("/*", cleaned)
+            self.assertNotIn("*/", cleaned)
 
     def test_validate_extracted_data(self):
         """Test validation of extracted data."""
         # Valid data
         valid_data = {
-            'title': 'Test Event',
-            'date': '2025-07-21T22:30:00.000Z',
-            'location': 'Test Location'
+            "title": "Test Event",
+            "date": "2025-07-21T22:30:00.000Z",
+            "location": "Test Location",
         }
 
         self.assertTrue(self.extractor.validate_extracted_data(valid_data))
 
         # Invalid data - missing title
-        invalid_data = {
-            'date': '2025-07-21T22:30:00.000Z',
-            'location': 'Test Location'
-        }
+        invalid_data = {"date": "2025-07-21T22:30:00.000Z", "location": "Test Location"}
 
         self.assertFalse(self.extractor.validate_extracted_data(invalid_data))
 
         # Invalid data - malformed date
         invalid_date_data = {
-            'title': 'Test Event',
-            'date': 'invalid-date-format',
-            'location': 'Test Location'
+            "title": "Test Event",
+            "date": "invalid-date-format",
+            "location": "Test Location",
         }
 
         self.assertFalse(self.extractor.validate_extracted_data(invalid_date_data))
 
     def test_get_extraction_method(self):
         """Test extraction method name."""
-        self.assertEqual(self.extractor.get_extraction_method(), 'json')
+        self.assertEqual(self.extractor.get_extraction_method(), "json")
 
     def test_custom_patterns_in_config(self):
         """Test custom patterns from configuration."""
-        custom_patterns = [
-            r'customPattern:\s*({.*?})',
-            r'specialData\s*=\s*({.*?});'
-        ]
+        custom_patterns = [r"customPattern:\s*({.*?})", r"specialData\s*=\s*({.*?});"]
 
-        extractor = JsonExtractor(config={'custom_patterns': custom_patterns})
+        extractor = JsonExtractor(config={"custom_patterns": custom_patterns})
 
         # Check that custom patterns are added
         self.assertEqual(len(extractor.patterns), len(JsonExtractor.JSON_PATTERNS) + 2)
@@ -293,10 +286,10 @@ class TestJsonExtractor(unittest.TestCase):
         """Test extraction with minimal event data."""
         minimal_event = {
             "name": "Minimal Event",
-            "start_at": "2025-07-21T22:30:00.000Z"
+            "start_at": "2025-07-21T22:30:00.000Z",
         }
 
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -304,23 +297,23 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['title'], "Minimal Event")
-            self.assertEqual(result['date'], "2025-07-21T22:30:00.000Z")
-            self.assertEqual(result['extraction_method'], 'json')
+            self.assertEqual(result["title"], "Minimal Event")
+            self.assertEqual(result["date"], "2025-07-21T22:30:00.000Z")
+            self.assertEqual(result["extraction_method"], "json")
 
     def test_extraction_with_alternative_organizer_field(self):
         """Test extraction with alternative organizer field names."""
         event_data = self.sample_event_data.copy()
-        event_data['organizer'] = {'name': 'Alternative Organizer'}
-        del event_data['user']
+        event_data["organizer"] = {"name": "Alternative Organizer"}
+        del event_data["user"]
 
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -328,21 +321,21 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
         self.assertIsNotNone(result)
         if result:
             # Should not extract organizer from this structure in current implementation
-            self.assertNotIn('organizer', result)
+            self.assertNotIn("organizer", result)
 
     def test_extraction_with_guest_count_alternatives(self):
         """Test extraction with different guest count field names."""
         event_data = self.sample_event_data.copy()
-        event_data['rsvp_count'] = 42
+        event_data["rsvp_count"] = 42
 
-        html_content = f'''
+        html_content = f"""
         <html>
             <body>
                 <script>
@@ -350,13 +343,13 @@ class TestJsonExtractor(unittest.TestCase):
                 </script>
             </body>
         </html>
-        '''
+        """
 
         result = self.extractor.extract(html_content)
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['guest_count'], 42)
+            self.assertEqual(result["guest_count"], 42)
 
 
 class TestBaseExtractor(unittest.TestCase):
@@ -364,6 +357,7 @@ class TestBaseExtractor(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
+
         # Create a concrete implementation for testing
         class TestExtractor(BaseExtractor):
             def extract(self, content, **kwargs):
@@ -378,7 +372,7 @@ class TestBaseExtractor(unittest.TestCase):
 
     def test_get_extraction_method(self):
         """Test extraction method name generation."""
-        self.assertEqual(self.extractor.get_extraction_method(), 'test')
+        self.assertEqual(self.extractor.get_extraction_method(), "test")
 
     def test_validate_extracted_data_with_valid_data(self):
         """Test validation with valid data."""
@@ -397,6 +391,7 @@ class TestBaseExtractor(unittest.TestCase):
 
     def test_validate_extracted_data_with_required_fields(self):
         """Test validation with required fields configuration."""
+
         # Use the concrete TestExtractor instead of abstract BaseExtractor
         class TestExtractorWithConfig(BaseExtractor):
             def extract(self, content, **kwargs):
@@ -405,7 +400,9 @@ class TestBaseExtractor(unittest.TestCase):
             def can_extract(self, content):
                 return True
 
-        extractor = TestExtractorWithConfig(config={'required_fields': ['title', 'url']})
+        extractor = TestExtractorWithConfig(
+            config={"required_fields": ["title", "url"]}
+        )
 
         # Valid data with all required fields
         valid_data = {"title": "Test Event", "url": "https://test.com"}
@@ -417,7 +414,7 @@ class TestBaseExtractor(unittest.TestCase):
 
     def test_log_extraction_result(self):
         """Test extraction result logging."""
-        with patch.object(self.extractor, 'logger') as mock_logger:
+        with patch.object(self.extractor, "logger") as mock_logger:
             # Test successful extraction
             self.extractor.log_extraction_result(True, {"title": "Test"})
             mock_logger.info.assert_called()
@@ -436,7 +433,9 @@ class TestMultiExtractor(unittest.TestCase):
         self.mock_extractor1 = Mock(spec=BaseExtractor)
         self.mock_extractor2 = Mock(spec=BaseExtractor)
 
-        self.multi_extractor = MultiExtractor([self.mock_extractor1, self.mock_extractor2])
+        self.multi_extractor = MultiExtractor(
+            [self.mock_extractor1, self.mock_extractor2]
+        )
 
     def test_extract_with_first_extractor_success(self):
         """Test extraction when first extractor succeeds."""
@@ -454,8 +453,8 @@ class TestMultiExtractor(unittest.TestCase):
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['title'], "Test Event")
-            self.assertEqual(result['extraction_method'], "test1")
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["extraction_method"], "test1")
 
         # Verify only first extractor was used
         self.mock_extractor1.can_extract.assert_called_once()
@@ -482,8 +481,8 @@ class TestMultiExtractor(unittest.TestCase):
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['title'], "Test Event 2")
-            self.assertEqual(result['extraction_method'], "test2")
+            self.assertEqual(result["title"], "Test Event 2")
+            self.assertEqual(result["extraction_method"], "test2")
 
         # Verify both extractors were tried
         self.mock_extractor1.can_extract.assert_called_once()
@@ -519,7 +518,7 @@ class TestMultiExtractor(unittest.TestCase):
 
         self.assertIsNotNone(result)
         if result:
-            self.assertEqual(result['title'], "Test Event 2")
+            self.assertEqual(result["title"], "Test Event 2")
 
         # Verify exception was handled and second extractor was used
         self.mock_extractor1.log_extraction_result.assert_called_with(False)
@@ -535,5 +534,5 @@ class TestMultiExtractor(unittest.TestCase):
         self.assertEqual(extractors, ["test1", "test2"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -12,10 +12,11 @@ wheels/
 
 .pytest_cache/
 
-crypto_events.json
-debug_response.html
 enhanced_extraction_results.json
 output/
+crypto_events.json
+debug_response.html
+response_eventbrite.html
 
 .kiro
 .ropeproject

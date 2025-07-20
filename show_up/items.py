@@ -44,7 +44,9 @@ class EventItem(scrapy.Item):
     # Technical fields
     html_content = scrapy.Field()  # Processed HTML content
     raw_html = scrapy.Field()  # Raw HTML response
-    extraction_method = scrapy.Field()  # How data was extracted ("json", "html", "fallback")
+    extraction_method = (
+        scrapy.Field()
+    )  # How data was extracted ("json", "html", "fallback")
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Override to provide type hints and validation."""

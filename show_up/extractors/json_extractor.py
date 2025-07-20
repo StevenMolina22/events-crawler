@@ -29,25 +29,18 @@ class JsonExtractor(BaseExtractor):
     JSON_PATTERNS = [
         # Pattern 1: Direct event object in script (with proper nested braces)
         r'"event":\s*(\{(?:[^{}]|{[^{}]*})*\})',
-
         # Pattern 2: Full initial data structure
-        r'window\.__INITIAL_DATA__\s*=\s*(\{.*?\});',
-
+        r"window\.__INITIAL_DATA__\s*=\s*(\{.*?\});",
         # Pattern 3: Event data in script tag (non-greedy)
         r'<script[^>]*>.*?(\{.*?"event".*?\}.*?)</script>',
-
         # Pattern 4: JSON-LD structured data
         r'<script[^>]*type="application/ld\+json"[^>]*>([^<]+)</script>',
-
         # Pattern 5: React props or state
-        r'window\.__PROPS__\s*=\s*(\{.*?\});',
-
+        r"window\.__PROPS__\s*=\s*(\{.*?\});",
         # Pattern 6: Event data in data attributes
         r'data-event=(["\'])(\{.*?\})\1',
-
         # Pattern 7: Variable assignment with event data
         r'var\s+\w+\s*=\s*(\{.*?"event".*?\});',
-
         # Pattern 8: Simple event object assignment
         r'=\s*(\{.*?"event".*?\});',
     ]
@@ -63,8 +56,8 @@ class JsonExtractor(BaseExtractor):
 
         # Add custom patterns from config
         self.patterns = self.JSON_PATTERNS.copy()
-        if config and 'custom_patterns' in config:
-            self.patterns.extend(config['custom_patterns'])
+        if config and "custom_patterns" in config:
+            self.patterns.extend(config["custom_patterns"])
 
     def can_extract(self, content: str) -> bool:
         """
@@ -82,9 +75,9 @@ class JsonExtractor(BaseExtractor):
         # Quick check for common JSON indicators
         json_indicators = [
             '"event"',
-            'window.__INITIAL_DATA__',
-            'application/ld+json',
-            'data-event',
+            "window.__INITIAL_DATA__",
+            "application/ld+json",
+            "data-event",
         ]
 
         return any(indicator in content for indicator in json_indicators)
@@ -109,12 +102,12 @@ class JsonExtractor(BaseExtractor):
                 result = self._extract_with_pattern(content, pattern, i)
                 if result:
                     # Add extraction metadata
-                    result['extraction_method'] = 'json'
-                    result['extraction_pattern'] = i
+                    result["extraction_method"] = "json"
+                    result["extraction_pattern"] = i
 
                     # Add any additional context from kwargs
-                    if 'url' in kwargs:
-                        result['url'] = kwargs['url']
+                    if "url" in kwargs:
+                        result["url"] = kwargs["url"]
 
                     self.logger.info(f"Successfully extracted data using pattern {i}")
                     return result
@@ -126,7 +119,9 @@ class JsonExtractor(BaseExtractor):
         self.logger.warning("All JSON patterns failed")
         return None
 
-    def _extract_with_pattern(self, content: str, pattern: str, pattern_index: int) -> Optional[Dict[str, Any]]:
+    def _extract_with_pattern(
+        self, content: str, pattern: str, pattern_index: int
+    ) -> Optional[Dict[str, Any]]:
         """
         Extract data using a specific regex pattern.
 
@@ -172,7 +167,9 @@ class JsonExtractor(BaseExtractor):
                     return event_data
 
             except (json.JSONDecodeError, KeyError, TypeError) as e:
-                self.logger.debug(f"Failed to parse JSON from pattern {pattern_index}: {e}")
+                self.logger.debug(
+                    f"Failed to parse JSON from pattern {pattern_index}: {e}"
+                )
                 continue
 
         return None
@@ -194,21 +191,21 @@ class JsonExtractor(BaseExtractor):
         json_str = json_str.strip()
 
         # Remove HTML entities
-        json_str = json_str.replace('&quot;', '"')
-        json_str = json_str.replace('&amp;', '&')
-        json_str = json_str.replace('&lt;', '<')
-        json_str = json_str.replace('&gt;', '>')
+        json_str = json_str.replace("&quot;", '"')
+        json_str = json_str.replace("&amp;", "&")
+        json_str = json_str.replace("&lt;", "<")
+        json_str = json_str.replace("&gt;", ">")
 
         # Remove JavaScript comments (but be careful with URLs)
         # Only remove block comments for safety
-        json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
+        json_str = re.sub(r"/\*.*?\*/", "", json_str, flags=re.DOTALL)
         # Only remove line comments if they start at the beginning of a line
-        json_str = re.sub(r'^\s*//.*?$', '', json_str, flags=re.MULTILINE)
+        json_str = re.sub(r"^\s*//.*?$", "", json_str, flags=re.MULTILINE)
 
         # Ensure proper JSON structure
-        if not json_str.startswith(('{', '[')):
+        if not json_str.startswith(("{", "[")):
             # Try to find the start of JSON
-            json_start = max(json_str.find('{'), json_str.find('['))
+            json_start = max(json_str.find("{"), json_str.find("["))
             if json_start != -1:
                 json_str = json_str[json_start:]
 
@@ -221,9 +218,9 @@ class JsonExtractor(BaseExtractor):
             pass
 
         # If that fails, try bracket balancing
-        if json_str.startswith('{'):
+        if json_str.startswith("{"):
             return self._balance_braces(json_str)
-        elif json_str.startswith('['):
+        elif json_str.startswith("["):
             return self._balance_brackets(json_str)
 
         return json_str
@@ -238,19 +235,19 @@ class JsonExtractor(BaseExtractor):
             char = json_str[i]
 
             if in_string:
-                if char == '"' and (i == 0 or json_str[i-1] != '\\'):
+                if char == '"' and (i == 0 or json_str[i - 1] != "\\"):
                     in_string = False
-                elif char == '\\':
+                elif char == "\\":
                     i += 1  # Skip next character
             else:
                 if char == '"':
                     in_string = True
-                elif char == '{':
+                elif char == "{":
                     brace_count += 1
-                elif char == '}':
+                elif char == "}":
                     brace_count -= 1
                     if brace_count == 0:
-                        return json_str[:i+1]
+                        return json_str[: i + 1]
 
             i += 1
 
@@ -266,25 +263,27 @@ class JsonExtractor(BaseExtractor):
             char = json_str[i]
 
             if in_string:
-                if char == '"' and (i == 0 or json_str[i-1] != '\\'):
+                if char == '"' and (i == 0 or json_str[i - 1] != "\\"):
                     in_string = False
-                elif char == '\\':
+                elif char == "\\":
                     i += 1  # Skip next character
             else:
                 if char == '"':
                     in_string = True
-                elif char == '[':
+                elif char == "[":
                     bracket_count += 1
-                elif char == ']':
+                elif char == "]":
                     bracket_count -= 1
                     if bracket_count == 0:
-                        return json_str[:i+1]
+                        return json_str[: i + 1]
 
             i += 1
 
         return json_str
 
-    def _extract_event_from_json(self, json_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _extract_event_from_json(
+        self, json_data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """
         Extract event data from parsed JSON structure.
 
@@ -300,72 +299,74 @@ class JsonExtractor(BaseExtractor):
         event_info = None
 
         # Direct event object
-        if 'event' in json_data:
-            event_info = json_data['event']
+        if "event" in json_data:
+            event_info = json_data["event"]
         # Event in nested structure
-        elif 'props' in json_data and 'event' in json_data['props']:
-            event_info = json_data['props']['event']
+        elif "props" in json_data and "event" in json_data["props"]:
+            event_info = json_data["props"]["event"]
         # Event in initialData
-        elif 'initialData' in json_data and 'event' in json_data['initialData']:
-            event_info = json_data['initialData']['event']
+        elif "initialData" in json_data and "event" in json_data["initialData"]:
+            event_info = json_data["initialData"]["event"]
         # Direct event data (when the whole JSON is the event)
-        elif 'name' in json_data and 'start_at' in json_data:
+        elif "name" in json_data and "start_at" in json_data:
             event_info = json_data
 
         if not event_info:
             return None
 
         # Extract basic information
-        event_data['title'] = event_info.get('name', '')
-        event_data['api_id'] = event_info.get('api_id', '')
-        event_data['event_type'] = event_info.get('event_type', '')
-        event_data['visibility'] = event_info.get('visibility', '')
+        event_data["title"] = event_info.get("name", "")
+        event_data["api_id"] = event_info.get("api_id", "")
+        event_data["event_type"] = event_info.get("event_type", "")
+        event_data["visibility"] = event_info.get("visibility", "")
 
         # Extract temporal information
-        if 'start_at' in event_info:
-            event_data['date'] = event_info['start_at']
-        if 'end_at' in event_info:
-            event_data['end_date'] = event_info['end_at']
-        if 'timezone' in event_info:
-            event_data['timezone'] = event_info['timezone']
+        if "start_at" in event_info:
+            event_data["date"] = event_info["start_at"]
+        if "end_at" in event_info:
+            event_data["end_date"] = event_info["end_at"]
+        if "timezone" in event_info:
+            event_data["timezone"] = event_info["timezone"]
 
         # Extract location information
         self._extract_location_data(event_info, event_data)
 
         # Extract additional metadata
-        if 'cover_url' in event_info:
-            event_data['cover_url'] = event_info['cover_url']
+        if "cover_url" in event_info:
+            event_data["cover_url"] = event_info["cover_url"]
 
         # Extract URL
-        if 'url' in event_info:
-            url = event_info['url']
-            if url and not url.startswith('http'):
-                event_data['url'] = f"https://lu.ma/{url}"
+        if "url" in event_info:
+            url = event_info["url"]
+            if url and not url.startswith("http"):
+                event_data["url"] = f"https://lu.ma/{url}"
             else:
-                event_data['url'] = url
+                event_data["url"] = url
 
         # Extract guest information
-        if 'guest_count' in event_info:
-            event_data['guest_count'] = event_info['guest_count']
-        elif 'rsvp_count' in event_info:
-            event_data['guest_count'] = event_info['rsvp_count']
+        if "guest_count" in event_info:
+            event_data["guest_count"] = event_info["guest_count"]
+        elif "rsvp_count" in event_info:
+            event_data["guest_count"] = event_info["rsvp_count"]
 
         # Extract organizer information
-        if 'user' in event_info:
-            organizer = event_info['user']
+        if "user" in event_info:
+            organizer = event_info["user"]
             if isinstance(organizer, dict):
-                event_data['organizer'] = organizer.get('name', '')
+                event_data["organizer"] = organizer.get("name", "")
 
         # Extract description (might be in different fields)
-        description_fields = ['description', 'details', 'content', 'body']
+        description_fields = ["description", "details", "content", "body"]
         for field in description_fields:
             if field in event_info and event_info[field]:
-                event_data['description'] = event_info[field]
+                event_data["description"] = event_info[field]
                 break
 
-        return event_data if event_data.get('title') else None
+        return event_data if event_data.get("title") else None
 
-    def _extract_location_data(self, event_info: Dict[str, Any], event_data: Dict[str, Any]) -> None:
+    def _extract_location_data(
+        self, event_info: Dict[str, Any], event_data: Dict[str, Any]
+    ) -> None:
         """
         Extract location information from event data.
 
@@ -374,46 +375,46 @@ class JsonExtractor(BaseExtractor):
             event_data: Target event data dictionary to populate
         """
         # Extract geo address information
-        if 'geo_address_info' in event_info:
-            geo_info = event_info['geo_address_info']
+        if "geo_address_info" in event_info:
+            geo_info = event_info["geo_address_info"]
 
             # Simple location string
             location_parts = []
-            if 'address' in geo_info:
-                location_parts.append(geo_info['address'])
-            if 'city' in geo_info:
-                location_parts.append(geo_info['city'])
-            if 'country' in geo_info:
-                location_parts.append(geo_info['country'])
+            if "address" in geo_info:
+                location_parts.append(geo_info["address"])
+            if "city" in geo_info:
+                location_parts.append(geo_info["city"])
+            if "country" in geo_info:
+                location_parts.append(geo_info["country"])
 
             if location_parts:
-                event_data['location'] = ', '.join(location_parts)
+                event_data["location"] = ", ".join(location_parts)
 
             # Detailed location fields
-            if 'full_address' in geo_info:
-                event_data['full_address'] = geo_info['full_address']
-            if 'city' in geo_info:
-                event_data['city'] = geo_info['city']
-            if 'country' in geo_info:
-                event_data['country'] = geo_info['country']
-            if 'place_id' in geo_info:
-                event_data['place_id'] = geo_info['place_id']
+            if "full_address" in geo_info:
+                event_data["full_address"] = geo_info["full_address"]
+            if "city" in geo_info:
+                event_data["city"] = geo_info["city"]
+            if "country" in geo_info:
+                event_data["country"] = geo_info["country"]
+            if "place_id" in geo_info:
+                event_data["place_id"] = geo_info["place_id"]
 
         # Extract coordinates
-        if 'coordinate' in event_info:
-            coord = event_info['coordinate']
-            if isinstance(coord, dict) and 'latitude' in coord and 'longitude' in coord:
-                event_data['coordinates'] = {
-                    'latitude': coord['latitude'],
-                    'longitude': coord['longitude']
+        if "coordinate" in event_info:
+            coord = event_info["coordinate"]
+            if isinstance(coord, dict) and "latitude" in coord and "longitude" in coord:
+                event_data["coordinates"] = {
+                    "latitude": coord["latitude"],
+                    "longitude": coord["longitude"],
                 }
 
         # Alternative location fields
-        if not event_data.get('location'):
-            location_fields = ['location', 'venue', 'address']
+        if not event_data.get("location"):
+            location_fields = ["location", "venue", "address"]
             for field in location_fields:
                 if field in event_info and event_info[field]:
-                    event_data['location'] = event_info[field]
+                    event_data["location"] = event_info[field]
                     break
 
     def validate_extracted_data(self, data: Dict[str, Any]) -> bool:
@@ -430,15 +431,15 @@ class JsonExtractor(BaseExtractor):
             return False
 
         # JSON-specific validation
-        required_fields = ['title']
+        required_fields = ["title"]
         for field in required_fields:
             if field not in data or not data[field]:
                 return False
 
         # Validate date format if present
-        if 'date' in data and data['date']:
+        if "date" in data and data["date"]:
             try:
-                datetime.fromisoformat(data['date'].replace('Z', '+00:00'))
+                datetime.fromisoformat(data["date"].replace("Z", "+00:00"))
             except (ValueError, AttributeError):
                 self.logger.warning(f"Invalid date format: {data['date']}")
                 return False

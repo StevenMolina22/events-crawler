@@ -32,7 +32,7 @@ def validate_event_data(event_data: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Event data must be a dictionary")
 
     # Required fields
-    required_fields = ['title', 'url']
+    required_fields = ["title", "url"]
     for field in required_fields:
         if field not in event_data or not event_data[field]:
             raise ValueError(f"Required field '{field}' is missing or empty")
@@ -79,19 +79,19 @@ def clean_event_data(event_data: Dict[str, Any]) -> Dict[str, Any]:
 
 def _validate_url(event_data: Dict[str, Any]) -> Dict[str, Any]:
     """Validate and normalize URL field."""
-    if 'url' in event_data:
-        url = event_data['url']
+    if "url" in event_data:
+        url = event_data["url"]
 
         # Add protocol if missing
-        if url and not url.startswith(('http://', 'https://')):
-            if url.startswith('//'):
-                url = 'https:' + url
-            elif url.startswith('/'):
-                url = 'https://lu.ma' + url
-            elif 'lu.ma' in url:
-                url = 'https://' + url
+        if url and not url.startswith(("http://", "https://")):
+            if url.startswith("//"):
+                url = "https:" + url
+            elif url.startswith("/"):
+                url = "https://lu.ma" + url
+            elif "lu.ma" in url:
+                url = "https://" + url
             else:
-                url = 'https://lu.ma/' + url
+                url = "https://lu.ma/" + url
 
         # Validate URL format
         try:
@@ -103,14 +103,14 @@ def _validate_url(event_data: Dict[str, Any]) -> Dict[str, Any]:
             logger.warning(f"URL validation failed: {e}")
             return event_data
 
-        event_data['url'] = url
+        event_data["url"] = url
 
     return event_data
 
 
 def _validate_dates(event_data: Dict[str, Any]) -> Dict[str, Any]:
     """Validate and normalize date fields."""
-    date_fields = ['date', 'end_date']
+    date_fields = ["date", "end_date"]
 
     for field in date_fields:
         if field in event_data and event_data[field]:
@@ -123,9 +123,11 @@ def _validate_dates(event_data: Dict[str, Any]) -> Dict[str, Any]:
             elif isinstance(date_value, str):
                 try:
                     # Try to parse as ISO format
-                    if date_value.endswith('Z'):
+                    if date_value.endswith("Z"):
                         # Preserve original Z format
-                        parsed_date = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+                        parsed_date = datetime.fromisoformat(
+                            date_value.replace("Z", "+00:00")
+                        )
                         event_data[field] = date_value  # Keep original format
                     else:
                         parsed_date = datetime.fromisoformat(date_value)
@@ -133,10 +135,10 @@ def _validate_dates(event_data: Dict[str, Any]) -> Dict[str, Any]:
                 except ValueError:
                     # Try other common formats
                     formats = [
-                        '%Y-%m-%d %H:%M:%S',
-                        '%Y-%m-%d',
-                        '%d/%m/%Y',
-                        '%m/%d/%Y',
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y-%m-%d",
+                        "%d/%m/%Y",
+                        "%m/%d/%Y",
                     ]
 
                     parsed = None
@@ -159,7 +161,7 @@ def _validate_dates(event_data: Dict[str, Any]) -> Dict[str, Any]:
 
 def _validate_location(event_data: Dict[str, Any]) -> Dict[str, Any]:
     """Validate and normalize location fields."""
-    location_fields = ['location', 'full_address', 'city', 'country']
+    location_fields = ["location", "full_address", "city", "country"]
 
     for field in location_fields:
         if field in event_data and event_data[field]:
@@ -167,7 +169,7 @@ def _validate_location(event_data: Dict[str, Any]) -> Dict[str, Any]:
 
             if isinstance(location_value, str):
                 # Clean up location string
-                cleaned_location = re.sub(r'\s+', ' ', location_value.strip())
+                cleaned_location = re.sub(r"\s+", " ", location_value.strip())
                 event_data[field] = cleaned_location
 
     return event_data
@@ -175,13 +177,13 @@ def _validate_location(event_data: Dict[str, Any]) -> Dict[str, Any]:
 
 def _validate_coordinates(event_data: Dict[str, Any]) -> Dict[str, Any]:
     """Validate coordinate data."""
-    if 'coordinates' in event_data and event_data['coordinates']:
-        coords = event_data['coordinates']
+    if "coordinates" in event_data and event_data["coordinates"]:
+        coords = event_data["coordinates"]
 
         if isinstance(coords, dict):
             # Validate latitude and longitude
-            lat = coords.get('latitude')
-            lng = coords.get('longitude')
+            lat = coords.get("latitude")
+            lng = coords.get("longitude")
 
             if lat is not None and lng is not None:
                 try:
@@ -190,22 +192,26 @@ def _validate_coordinates(event_data: Dict[str, Any]) -> Dict[str, Any]:
 
                     # Validate ranges
                     if -90 <= lat_float <= 90 and -180 <= lng_float <= 180:
-                        event_data['coordinates'] = {
-                            'latitude': lat_float,
-                            'longitude': lng_float
+                        event_data["coordinates"] = {
+                            "latitude": lat_float,
+                            "longitude": lng_float,
                         }
                     else:
-                        logger.warning(f"Invalid coordinate ranges: lat={lat_float}, lng={lng_float}")
-                        del event_data['coordinates']
+                        logger.warning(
+                            f"Invalid coordinate ranges: lat={lat_float}, lng={lng_float}"
+                        )
+                        del event_data["coordinates"]
                 except (ValueError, TypeError):
                     logger.warning(f"Invalid coordinate values: lat={lat}, lng={lng}")
-                    del event_data['coordinates']
+                    del event_data["coordinates"]
             else:
                 logger.warning("Coordinates missing latitude or longitude")
-                del event_data['coordinates']
+                del event_data["coordinates"]
         else:
-            logger.warning("Coordinates should be a dictionary with latitude and longitude")
-            del event_data['coordinates']
+            logger.warning(
+                "Coordinates should be a dictionary with latitude and longitude"
+            )
+            del event_data["coordinates"]
 
     return event_data
 
@@ -221,17 +227,19 @@ def normalize_extraction_method(method: str) -> str:
         Normalized extraction method
     """
     method_map = {
-        'json': 'json',
-        'html': 'html',
-        'fallback': 'html_fallback',
-        'css': 'html',
-        'selector': 'html'
+        "json": "json",
+        "html": "html",
+        "fallback": "html_fallback",
+        "css": "html",
+        "selector": "html",
     }
 
-    return method_map.get(method.lower(), 'unknown')
+    return method_map.get(method.lower(), "unknown")
 
 
-def validate_required_fields(event_data: Dict[str, Any], required_fields: List[str]) -> bool:
+def validate_required_fields(
+    event_data: Dict[str, Any], required_fields: List[str]
+) -> bool:
     """
     Check if all required fields are present and not empty.
 
@@ -260,23 +268,23 @@ def get_data_completeness_score(event_data: Dict[str, Any]) -> float:
     """
     # Define field weights (more important fields have higher weights)
     field_weights = {
-        'title': 0.2,
-        'url': 0.15,
-        'date': 0.15,
-        'location': 0.1,
-        'full_address': 0.05,
-        'city': 0.05,
-        'country': 0.05,
-        'coordinates': 0.05,
-        'timezone': 0.05,
-        'end_date': 0.05,
-        'event_type': 0.03,
-        'visibility': 0.02,
-        'organizer': 0.05,
-        'description': 0.05,
-        'cover_url': 0.02,
-        'api_id': 0.02,
-        'guest_count': 0.01
+        "title": 0.2,
+        "url": 0.15,
+        "date": 0.15,
+        "location": 0.1,
+        "full_address": 0.05,
+        "city": 0.05,
+        "country": 0.05,
+        "coordinates": 0.05,
+        "timezone": 0.05,
+        "end_date": 0.05,
+        "event_type": 0.03,
+        "visibility": 0.02,
+        "organizer": 0.05,
+        "description": 0.05,
+        "cover_url": 0.02,
+        "api_id": 0.02,
+        "guest_count": 0.01,
     }
 
     total_weight = 0

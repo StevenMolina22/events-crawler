@@ -15,13 +15,12 @@ class LumaSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         # Initialize JSON extractor
         custom_patterns = []
-        if hasattr(self, 'settings') and self.settings:
-            custom_patterns = self.settings.getlist('JSON_EXTRACTION_PATTERNS', [])
+        if hasattr(self, "settings") and self.settings:
+            custom_patterns = self.settings.getlist("JSON_EXTRACTION_PATTERNS", [])
 
-        self.json_extractor = JsonExtractor(config={
-            'required_fields': ['title'],
-            'custom_patterns': custom_patterns
-        })
+        self.json_extractor = JsonExtractor(
+            config={"required_fields": ["title"], "custom_patterns": custom_patterns}
+        )
 
     async def start(self):
         for url in self.start_urls:
@@ -37,7 +36,7 @@ class LumaSpider(scrapy.Spider):
 
     def parse(self, response):
         # Save the full HTML response for debugging
-        with open('debug_response.html', 'w', encoding='utf-8') as f:
+        with open("debug_response.html", "w", encoding="utf-8") as f:
             f.write(response.text)
 
         # Debug: print the length of the response
@@ -45,12 +44,14 @@ class LumaSpider(scrapy.Spider):
 
         # Extract event links from the timeline section
         # Look for individual event cards in the timeline
-        event_links = response.css('a.event-link::attr(href)').getall()
-        self.logger.info(f"Found {len(event_links)} event links with selector 'a.event-link'")
+        event_links = response.css("a.event-link::attr(href)").getall()
+        self.logger.info(
+            f"Found {len(event_links)} event links with selector 'a.event-link'"
+        )
 
         # Try different selectors to find event links
         alternative_selectors = [
-            'a.event-link',
+            "a.event-link",
             'a[aria-label*="event"]',
             'a[href*="/1"]',  # Individual event IDs seem to start with /1
             'a[href*="/g"]',  # Some event IDs start with /g
@@ -59,7 +60,7 @@ class LumaSpider(scrapy.Spider):
         ]
 
         for selector in alternative_selectors:
-            links = response.css(f'{selector}::attr(href)').getall()
+            links = response.css(f"{selector}::attr(href)").getall()
             self.logger.info(f"Selector '{selector}' found {len(links)} links")
             if links:
                 # Show first few links as examples
@@ -80,7 +81,9 @@ class LumaSpider(scrapy.Spider):
                     },
                 )
         else:
-            self.logger.warning("No event links found! This might be a JavaScript-heavy page that needs more time to load.")
+            self.logger.warning(
+                "No event links found! This might be a JavaScript-heavy page that needs more time to load."
+            )
 
     def parse_event(self, response):
         """Parse event page and extract complete event data using JSON extraction."""
@@ -88,22 +91,24 @@ class LumaSpider(scrapy.Spider):
         item = EventItem()
 
         # Set basic fields
-        item['url'] = response.url
-        item['raw_html'] = response.text
+        item["url"] = response.url
+        item["raw_html"] = response.text
 
         # Try JSON extraction first (primary method)
         extracted_data = self._extract_with_json(response)
 
         # If JSON extraction fails, fall back to HTML parsing
-        if not extracted_data and self.settings.getbool('JSON_EXTRACTION_FALLBACK', True):
+        if not extracted_data and self.settings.getbool(
+            "JSON_EXTRACTION_FALLBACK", True
+        ):
             extracted_data = self._extract_with_html_selectors(response)
 
         # If we still don't have data, create minimal item
         if not extracted_data:
             self.logger.warning(f"Failed to extract data from {response.url}")
             extracted_data = {
-                'title': self._extract_title_fallback(response),
-                'extraction_method': 'fallback'
+                "title": self._extract_title_fallback(response),
+                "extraction_method": "fallback",
             }
 
         # Populate item with extracted data
@@ -118,7 +123,9 @@ class LumaSpider(scrapy.Spider):
             for key, value in validated_data.items():
                 item[key] = value
 
-            self.logger.info(f"Successfully extracted event: {item.get('title', 'Unknown')} using {item.get('extraction_method', 'unknown')}")
+            self.logger.info(
+                f"Successfully extracted event: {item.get('title', 'Unknown')} using {item.get('extraction_method', 'unknown')}"
+            )
 
         except Exception as e:
             self.logger.error(f"Data validation failed for {response.url}: {e}")
@@ -128,13 +135,12 @@ class LumaSpider(scrapy.Spider):
 
     def _extract_with_json(self, response) -> Optional[Dict[str, Any]]:
         """Extract event data using JSON extraction."""
-        if not self.settings.getbool('JSON_EXTRACTION_ENABLED', True):
+        if not self.settings.getbool("JSON_EXTRACTION_ENABLED", True):
             return None
 
         try:
             extracted_data = self.json_extractor.extract(
-                response.text,
-                url=response.url
+                response.text, url=response.url
             )
 
             if extracted_data:
@@ -152,58 +158,56 @@ class LumaSpider(scrapy.Spider):
         """Extract event data using HTML selectors (fallback method)."""
         self.logger.info(f"Falling back to HTML selector extraction for {response.url}")
 
-        extracted_data = {
-            'extraction_method': 'html_fallback'
-        }
+        extracted_data = {"extraction_method": "html_fallback"}
 
         # Try multiple selectors for title
-        title = response.css('h1::text').get()
+        title = response.css("h1::text").get()
         if not title:
             title = response.css('[data-testid="event-title"]::text').get()
         if not title:
-            title = response.css('title::text').get()
+            title = response.css("title::text").get()
         if not title:
-            title = response.css('.title::text').get()
+            title = response.css(".title::text").get()
 
         # Try multiple selectors for date
-        date = response.css('.event-date::text').get()
+        date = response.css(".event-date::text").get()
         if not date:
             date = response.css('[data-testid="event-date"]::text').get()
         if not date:
-            date = response.css('time::text').get()
+            date = response.css("time::text").get()
         if not date:
-            date = response.css('[datetime]::attr(datetime)').get()
+            date = response.css("[datetime]::attr(datetime)").get()
 
         # Try multiple selectors for location
-        location = response.css('.event-location::text').get()
+        location = response.css(".event-location::text").get()
         if not location:
             location = response.css('[data-testid="event-location"]::text').get()
         if not location:
-            location = response.css('address::text').get()
+            location = response.css("address::text").get()
         if not location:
-            location = response.css('.location::text').get()
+            location = response.css(".location::text").get()
 
         # Populate extracted data
         if title:
-            extracted_data['title'] = title.strip()
+            extracted_data["title"] = title.strip()
         if date:
-            extracted_data['date'] = date.strip()
+            extracted_data["date"] = date.strip()
         if location:
-            extracted_data['location'] = location.strip()
+            extracted_data["location"] = location.strip()
 
-        return extracted_data if extracted_data.get('title') else None
+        return extracted_data if extracted_data.get("title") else None
 
     def _extract_title_fallback(self, response) -> str:
         """Extract title using multiple fallback methods."""
         # Try page title
-        title = response.css('title::text').get()
+        title = response.css("title::text").get()
         if title:
             # Clean up title (remove site name, etc.)
-            title = title.replace(' | Luma', '').replace(' - Luma', '').strip()
+            title = title.replace(" | Luma", "").replace(" - Luma", "").strip()
             return title
 
         # Try any h1 tag
-        title = response.css('h1::text').get()
+        title = response.css("h1::text").get()
         if title:
             return title.strip()
 
@@ -213,34 +217,34 @@ class LumaSpider(scrapy.Spider):
             return title.strip()
 
         # Final fallback - extract from URL
-        url_parts = response.url.split('/')
+        url_parts = response.url.split("/")
         if url_parts and url_parts[-1]:
-            return url_parts[-1].replace('-', ' ').title()
+            return url_parts[-1].replace("-", " ").title()
 
-        return 'Unknown Event'
+        return "Unknown Event"
 
     def _populate_item(self, item: EventItem, data: Dict[str, Any]) -> None:
         """Populate EventItem with extracted data."""
         # Map extracted data to item fields
         field_mapping = {
-            'title': 'title',
-            'date': 'date',
-            'end_date': 'end_date',
-            'timezone': 'timezone',
-            'location': 'location',
-            'full_address': 'full_address',
-            'city': 'city',
-            'country': 'country',
-            'coordinates': 'coordinates',
-            'place_id': 'place_id',
-            'event_type': 'event_type',
-            'visibility': 'visibility',
-            'api_id': 'api_id',
-            'cover_url': 'cover_url',
-            'organizer': 'organizer',
-            'guest_count': 'guest_count',
-            'description': 'description',
-            'extraction_method': 'extraction_method'
+            "title": "title",
+            "date": "date",
+            "end_date": "end_date",
+            "timezone": "timezone",
+            "location": "location",
+            "full_address": "full_address",
+            "city": "city",
+            "country": "country",
+            "coordinates": "coordinates",
+            "place_id": "place_id",
+            "event_type": "event_type",
+            "visibility": "visibility",
+            "api_id": "api_id",
+            "cover_url": "cover_url",
+            "organizer": "organizer",
+            "guest_count": "guest_count",
+            "description": "description",
+            "extraction_method": "extraction_method",
         }
 
         for data_key, item_key in field_mapping.items():
@@ -250,22 +254,23 @@ class LumaSpider(scrapy.Spider):
         # Set HTML content
         html_content = self._get_html_content(item)
         if html_content:
-            item['html_content'] = html_content
+            item["html_content"] = html_content
 
     def _get_html_content(self, item: EventItem) -> Optional[str]:
         """Extract HTML content for the item."""
-        raw_html = item.get('raw_html', '')
+        raw_html = item.get("raw_html", "")
         if not raw_html:
             return None
 
         # Try to extract main content
         from scrapy import Selector
+
         selector = Selector(text=raw_html)
 
         # Try different selectors for main content
-        main_content = selector.css('main').get()
+        main_content = selector.css("main").get()
         if not main_content:
-            main_content = selector.css('body').get()
+            main_content = selector.css("body").get()
         if not main_content:
             main_content = raw_html
 
