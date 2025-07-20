@@ -1,5 +1,6 @@
 import scrapy
 import json
+import re
 
 HTML_FILE = "res_eventbrite.html"
 
@@ -9,45 +10,46 @@ class EventbriteSpider(scrapy.Spider):
     allowed_domains = ["eventbrite.com.ar"]
     start_urls = ["https://www.eventbrite.com.ar/d/argentina--buenos-aires/tech/"]
 
-    def extract_json_ld(self, response):
-            """Helper function to extract and parse JSON-LD data"""
-            json_ld_scripts = response.css('script[type="application/ld+json"]::text').getall()
-            parsed_data = []
-
-            for script in json_ld_scripts:
-                try:
-                    data = json.loads(script.strip())
-                    parsed_data.append(data)
-                except json.JSONDecodeError:
-                    continue
-
-            return parsed_data
-
-
-
     def parse(self, response):
-        scripts = response.css('script::text').getall()
+        """
+        This function parses the Eventbrite search results page.
+        It extracts the event data from the window.__SERVER_DATA__ variable using a regex.
+        """
+        server_data_script = response.xpath('//script[contains(., "window.__SERVER_DATA__")]/text()').get()
+        if not server_data_script:
+            self.logger.error("Could not find window.__SERVER_DATA__ script.")
+            return
 
-        with open("debug_scripts.jsonl", "a", encoding="utf-8") as debug_file:
-            for idx, script in enumerate(scripts):
-                if '"itemListElement"' in script:
-                    try:
-                        data = json.loads(script.strip())
+        # Use regex to find the JSON object
+        match = re.search(r'window\.__SERVER_DATA__\s*=\s*(\{.*?\});', server_data_script)
+        if not match:
+            self.logger.error("Could not find server data JSON in script.")
+            return
 
-                        # ✅ Save full JSON for raw debugging
-                        debug_file.write(json.dumps(data, ensure_ascii=False) + "\n")
+        try:
+            server_data = json.loads(match.group(1))
+            with open("server_data.json", "w", encoding="utf-8") as f:
+                json.dump(server_data, f, ensure_ascii=False, indent=4)
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse server data: {e}")
+            return
 
-                        # ✅ Yield full raw data for structured archiving
-                        yield {"raw_schema_org": data}
+        events = server_data.get('search_data', {}).get('events', {})
+        if not events:
+            self.logger.warning("No events found in server data.")
+            return
+        
+        results = events.get("results", [])
+        if not results:
+            self.logger.warning("No results found in server data.")
+            return
 
-                        # ✅ Also yield each event inside the itemListElement
-                        item_list = data.get("itemListElement", [])
-                        for item in item_list:
-                            item_data = item.get("item", {})
-                            if isinstance(item_data, dict):
-                                yield item_data
-                            else:
-                                self.logger.warning(f"item['item'] is not a dict in script #{idx}")
-
-                    except json.JSONDecodeError:
-                        self.logger.warning(f"❌ Could not parse JSON in script #{idx}")
+        for event in results:
+            yield {
+                'title': event.get('name'),
+                'url': event.get('url'),
+                'startDate': event.get('start_date'),
+                'endDate': event.get('end_date'),
+                'location': event.get('primary_venue', {}).get('name'),
+                'organizer': event.get('primary_organizer', {}).get('name'),
+            }
