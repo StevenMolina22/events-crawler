@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "codespell>=2.4.1",
+    "dotenv>=0.9.9",
+    "motor>=3.7.1",
+    "pymongo[srv]>=4.13.2",
     "scrapy>=2.13.3",
     "scrapy-playwright>=0.0.33",
 ]
