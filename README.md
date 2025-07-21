@@ -73,88 +73,16 @@ uv run scrapy crawl luma -o events.csv
 uv run scrapy crawl luma -o events.jsonl
 uv run scrapy crawl luma -o events.xml
 
-# The crawler produces ONLY structured JSON data:
-# - No HTML files are saved
-# - No raw HTML processing
-# - Clean, comprehensive JSON output with event data
-
-# Test enhanced extraction on existing HTML files
-uv run python test_enhanced_extraction.py
-
 # Run all tests
 uv run pytest
 
 # Run specific test suites
 uv run pytest tests/test_extractors.py -v
-uv run pytest tests/test_enhanced_spider.py -v
-uv run pytest tests/test_enhanced_pipelines.py -v
-```
-
-## 📁 Project Structure
-
-```
-show-up-crawler/
-├── .agents/                    # Project planning and documentation
-├── show_up/                    # Main crawler package
-│   ├── extractors/            # Data extraction components
-│   │   ├── __init__.py       # Package initialization
-│   │   ├── base.py           # Base extractor interface
-│   │   └── json_extractor.py # JSON extraction logic
-│   ├── utils/                # Utility functions
-│   │   ├── __init__.py       # Package initialization
-│   │   └── validation.py     # Data validation helpers
-│   ├── spiders/              # Scrapy spiders
-│   │   └── luma.py          # Enhanced Luma spider
-│   ├── items.py              # Enhanced data models
-│   ├── pipelines.py          # Enhanced data processing
-│   └── settings.py           # Configuration
-├── tests/                     # Comprehensive test suite
-│   ├── test_extractors.py    # JSON extraction tests
-│   ├── test_enhanced_spider.py # Spider functionality tests
-│   ├── test_enhanced_pipelines.py # Pipeline tests
-│   ├── test_pipelines.py     # Legacy pipeline tests
-│   └── test_utils.py         # Validation utility tests
-├── output/                    # Extracted JSON data
-├── test_enhanced_extraction.py # Integration test script
-└── README.md                 # This file
+uv run pytest tests/test_spider.py -v
+uv run pytest tests/test_pipelines.py -v
 ```
 
 ## 🔧 Configuration
-
-### JSON Extraction Settings
-
-```python
-# Enable/disable JSON extraction
-JSON_EXTRACTION_ENABLED = True
-
-# Custom extraction patterns (8 built-in patterns)
-JSON_EXTRACTION_PATTERNS = [
-    r'"event":\s*(\{(?:[^{}]|{[^{}]*})*\})',
-    r'window\.__INITIAL_DATA__\s*=\s*(\{.*?\});',
-    r'<script[^>]*>.*?(\{.*?"event".*?\}.*?)</script>',
-    r'<script[^>]*type="application/ld\+json"[^>]*>([^<]+)</script>',
-    # ... 4 more patterns
-]
-
-# Fallback to HTML parsing if JSON fails
-JSON_EXTRACTION_FALLBACK = True
-
-# Enhanced pipeline settings
-ENHANCED_JSON_VALIDATION = True
-ENHANCED_JSON_INCLUDE_METADATA = True
-ENHANCED_JSON_EXTRACTION_STATS = True
-JSON_OUTPUT_FILE = 'crypto_events.json'
-JSON_INDENT = 2
-JSON_ENSURE_ASCII = False
-
-# HTML output pipelines disabled - JSON output only
-# No HTML files are generated, only structured JSON data
-ITEM_PIPELINES = {
-    "show_up.pipelines.EnhancedJsonPipeline": 300,
-    # "show_up.pipelines.HtmlFilePipeline": 301,        # DISABLED
-    # "show_up.pipelines.RawHtmlFilePipeline": 302,     # DISABLED
-}
-```
 
 ### Output Format
 
@@ -230,8 +158,8 @@ uv run pytest
 
 # Run specific test suites
 uv run pytest tests/test_extractors.py -v          # JSON extraction tests
-uv run pytest tests/test_enhanced_spider.py -v     # Spider functionality tests
-uv run pytest tests/test_enhanced_pipelines.py -v  # Pipeline tests
+uv run pytest tests/test_spider.py -v              # Spider functionality tests
+uv run pytest tests/test_pipelines.py -v           # Pipeline tests
 uv run pytest tests/test_utils.py -v               # Validation utility tests
 
 # Run with coverage
@@ -241,18 +169,6 @@ uv run pytest --cov=show_up
 uv run pytest -v --tb=short
 ```
 
-### Integration Tests
-
-```bash
-# Test enhanced extraction on real HTML files
-uv run python test_enhanced_extraction.py
-
-# This will test extraction on all HTML files in output/html/
-# and generate a comprehensive report showing:
-# - 100% success rate on 8 HTML files
-# - 87.2% average completeness score
-# - Detailed extraction statistics
-```
 
 ### Test Coverage
 
@@ -313,20 +229,11 @@ Events are automatically scored for completeness using weighted field importance
 ### Extraction Pipeline
 ```
 1. JSON Extraction (8 patterns) → Success: 87.2% completeness
-2. HTML Fallback (CSS selectors) → Success: 25% completeness  
+2. HTML Fallback (CSS selectors) → Success: 25% completeness
 3. Minimal Extraction (title/URL) → Success: 100% always
 ```
 
 ## 🛠️ Development
-
-### Current Output Behavior
-The crawler has been streamlined to focus exclusively on JSON data extraction:
-
-- **✅ JSON Output**: Complete structured event data with metadata
-- **🚫 HTML Files**: No HTML files are saved (removed for efficiency)
-- **🚫 Raw HTML**: No raw HTML processing or storage
-- **📊 Statistics**: Comprehensive extraction statistics in JSON output
-- **🔧 Performance**: Optimized for JSON extraction only
 
 ### Adding New Extractors
 
@@ -342,11 +249,11 @@ class MyExtractor(BaseExtractor):
     def extract(self, content, **kwargs):
         # Your extraction logic here
         return extracted_data
-    
+
     def can_extract(self, content):
         # Check if this extractor can handle the content
         return "my_pattern" in content
-    
+
     def validate_extracted_data(self, data):
         # Override for custom validation
         return super().validate_extracted_data(data)
@@ -380,32 +287,8 @@ The enhanced pipeline tracks detailed statistics:
 - High-quality event detection (87.5% of events)
 - Comprehensive metadata in output JSON
 
-### Debug Mode
-
-```bash
-# Enable debug logging
-export SCRAPY_SETTINGS_MODULE=show_up.settings
-uv run scrapy crawl luma -L DEBUG
-
-# Enable JSON extraction debug mode
-uv run scrapy crawl luma -s JSON_EXTRACTION_DEBUG=True
-
-# Test extraction on specific HTML file
-uv run python -c "
-from show_up.extractors.json_extractor import JsonExtractor
-extractor = JsonExtractor()
-with open('output/html/event.html', 'r') as f:
-    result = extractor.extract(f.read())
-print(result)
-"
-
-# Check JSON output only (no HTML files generated)
-cat crypto_events.json | jq '.metadata.extraction_statistics'
-```
-
 ### Debugging Tools
 
-- **Integration Test Script**: `test_enhanced_extraction.py`
 - **Comprehensive Logging**: All extraction attempts logged
 - **Validation Reporting**: Detailed validation error messages
 - **Pattern Debugging**: Shows which JSON pattern succeeded
@@ -448,9 +331,6 @@ uv sync
 # Run tests to ensure everything works
 uv run pytest -v
 
-# Test integration
-uv run python test_enhanced_extraction.py
-```
 
 ## 📄 License
 
@@ -472,12 +352,7 @@ This project is licensed under the MIT License. See LICENSE file for details.
 ✅ **Complete**: Production-ready pipelines with statistics
 ✅ **Complete**: Integration testing with real HTML files
 ✅ **Complete**: Documentation and usage examples
-✅ **Complete**: JSON-only output (HTML file generation removed)
+✅ **Complete**: JSON-only output
 ✅ **Complete**: Streamlined pipeline configuration
 
 ---
-
-**Show Up Crawler** - Making crypto event discovery comprehensive and reliable! 🚀
-
-*Enhanced JSON extraction system achieving 87.2% data completeness with 100% success rate*  
-*Streamlined JSON-only output for clean, structured event data*

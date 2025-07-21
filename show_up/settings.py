@@ -110,6 +110,7 @@ DOWNLOAD_DELAY = 1
 FEED_EXPORT_ENCODING = "utf-8"
 
 # Enable Playwright downloader handler
+TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 DOWNLOAD_HANDLERS = {
     "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
     "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",

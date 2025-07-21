@@ -16,4 +16,4 @@ crypto_events.json
 debug_response.html
 output/
 
-# tests/
+tests/
