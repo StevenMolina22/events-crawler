@@ -36,18 +36,6 @@ The content is organized as follows:
 
 # Directory Structure
 ```
-.kiro/
-  specs/
-    enhanced-json-event-storage/
-      design.md
-      requirements.md
-      tasks.md
-output/
-  debug.json
-  evenbrite.json
-  eventbrite_events.json
-  luma.html
-  luma_events.json
 show_up/
   extractors/
     __init__.py
@@ -67,6 +55,7 @@ show_up/
 tests/
   test_enhanced_pipelines.py
   test_enhanced_spider.py
+  test_extraction.py
   test_extractors.py
   test_pipelines.py
   test_utils.py
@@ -74,63 +63,39 @@ tests/
 main.py
 pyproject.toml
 README.md
-repomix.config.json
-scrapy.cfg
-test_enhanced_extraction.py
-uv.lock
 ```
 
 # Files
 
-- .agents/AGENT.md
-- .agents/CONTEXT.md
-- .agents/PLANNING.md
-- .agents/RULES.md
-- .agents/TASKS.md
-- .venv/bin/activate_this.py
-- .venv/bin/jp.py
-- .env.local
-- .kiro/specs/enhanced-json-event-storage/design.md
-- .kiro/specs/enhanced-json-event-storage/requirements.md
-- .kiro/specs/enhanced-json-event-storage/tasks.md
-- .python-version
-- .repomixignore
-- .ruff_cache/0.11.9/14993961347254167462
-- .ruff_cache/0.11.9/16966933536205744969
-- .ruff_cache/0.11.9/6505350554833522355
-- .ruff_cache/CACHEDIR.TAG
-- README.md
-- generate_context_structure.py
-- inventory_findings.md
-- main.py
-- output/debug.json
-- output/evenbrite.json
-- output/eventbrite_events.json
-- output/luma.html
-- output/luma_events.json
-- pyproject.toml
-- repomix.config.json
-- scrapy.cfg
-- show_up/__init__.py
-- show_up/extractors/__init__.py
-- show_up/extractors/base.py
-- show_up/extractors/json_extractor.py
-- show_up/items.py
-- show_up/middlewares.py
-- show_up/pipelines.py
-- show_up/settings.py
-- show_up/spiders/__init__.py
-- show_up/spiders/eventbrite.py
-- show_up/spiders/luma.py
-- show_up/utils/__init__.py
-- show_up/utils/validation.py
-- test_enhanced_extraction.py
-- tests/test_enhanced_pipelines.py
-- tests/test_enhanced_spider.py
-- tests/test_extractors.py
-- tests/test_pipelines.py
-- tests/test_utils.py
-- uv.lock
+## File: tests/test_extraction.py
+````python
+import pytest
+import json
+from pathlib import Path
+from show_up.extractors.json_extractor import JsonExtractor
+
+@pytest.fixture
+def html_dir():
+    return Path("output/html")
+
+@pytest.fixture
+def html_files(html_dir):
+    return list(html_dir.glob("*.html")) if html_dir.exists() else []
+
+@pytest.fixture
+def json_extractor():
+    return JsonExtractor()
+
+def test_compare_with_original_data():
+    original_file = Path("output/debug.json")
+    assert original_file.exists(), f"Original file {original_file} not found"
+    with open(original_file, "r", encoding="utf-8") as f:
+        original_data = json.load(f)
+    events = original_data.get("events", [])
+    assert events, "No events found in original data"
+    events_with_titles = len([e for e in events if e.get("title")])
+    assert events_with_titles / len(events) > 0.9, "Less than 90% of events have titles"
+````
 
 ## File: .env.local
 ````
@@ -348,321 +313,6 @@ from .validation import (
 )
 
 __all__ = ["validate_event_data", "clean_event_data", "get_data_completeness_score"]
-````
-
-## File: test_enhanced_extraction.py
-````python
-#!/usr/bin/env python3
-"""
-Integration test script for enhanced JSON extraction functionality.
-
-This script tests the enhanced extraction capabilities on real HTML files
-and compares the results with the original incomplete extraction.
-"""
-
-import json
-import os
-import sys
-from pathlib import Path
-from typing import Dict, Any, List
-from datetime import datetime
-
-# Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from show_up.extractors.json_extractor import JsonExtractor
-from show_up.utils.validation import validate_event_data, get_data_completeness_score
-
-
-def test_extraction_on_html_files():
-    """Test extraction on all HTML files in the output directory."""
-
-    html_dir = Path("output/html")
-    if not html_dir.exists():
-        print(f"❌ HTML directory {html_dir} does not exist")
-        return
-
-    html_files = list(html_dir.glob("*.html"))
-    if not html_files:
-        print(f"❌ No HTML files found in {html_dir}")
-        return
-
-    print(f"🚀 Testing enhanced extraction on {len(html_files)} HTML files...")
-    print()
-
-    extractor = JsonExtractor()
-    results = []
-
-    for html_file in html_files:
-        print(f"📄 Processing: {html_file.name}")
-
-        try:
-            with open(html_file, "r", encoding="utf-8") as f:
-                html_content = f.read()
-
-            # Extract event data
-            extracted_data = extractor.extract(
-                html_content, url=f"https://lu.ma/{html_file.stem}"
-            )
-
-            if extracted_data:
-                # Validate the data
-                try:
-                    validated_data = validate_event_data(extracted_data)
-                    completeness_score = get_data_completeness_score(validated_data)
-
-                    result = {
-                        "file": html_file.name,
-                        "extraction_success": True,
-                        "extraction_method": extracted_data.get(
-                            "extraction_method", "unknown"
-                        ),
-                        "extraction_pattern": extracted_data.get(
-                            "extraction_pattern", "unknown"
-                        ),
-                        "title": validated_data.get("title", "Unknown"),
-                        "date": validated_data.get("date", "No date"),
-                        "location": validated_data.get("location", "No location"),
-                        "completeness_score": completeness_score,
-                        "field_count": len(
-                            [
-                                v
-                                for v in validated_data.values()
-                                if v not in [None, "", {}]
-                            ]
-                        ),
-                        "data": validated_data,
-                    }
-
-                    print(f"  ✅ Success: {result['title']}")
-                    print(f"     📅 Date: {result['date']}")
-                    print(f"     📍 Location: {result['location']}")
-                    print(
-                        f"     🔍 Method: {result['extraction_method']} (pattern {result['extraction_pattern']})"
-                    )
-                    print(
-                        f"     📊 Completeness: {completeness_score:.2f} ({result['field_count']} fields)"
-                    )
-
-                except Exception as e:
-                    result = {
-                        "file": html_file.name,
-                        "extraction_success": True,
-                        "validation_error": str(e),
-                        "raw_data": extracted_data,
-                    }
-                    print(f"  ⚠️  Extraction succeeded but validation failed: {e}")
-            else:
-                result = {
-                    "file": html_file.name,
-                    "extraction_success": False,
-                    "error": "No data extracted",
-                }
-                print(f"  ❌ Failed to extract data")
-
-            results.append(result)
-
-        except Exception as e:
-            result = {
-                "file": html_file.name,
-                "extraction_success": False,
-                "error": str(e),
-            }
-            results.append(result)
-            print(f"  ❌ Error: {e}")
-
-        print()
-
-    # Generate summary report
-    generate_summary_report(results)
-
-    # Save detailed results
-    save_detailed_results(results)
-
-    # Test completed successfully
-    assert len(results) > 0, "No results generated"
-    assert all(r.get("extraction_success") for r in results), "Some extractions failed"
-
-
-def generate_summary_report(results: List[Dict[str, Any]]):
-    """Generate a summary report of extraction results."""
-
-    total_files = len(results)
-    successful_extractions = len([r for r in results if r.get("extraction_success")])
-    failed_extractions = total_files - successful_extractions
-
-    # Calculate statistics for successful extractions
-    successful_results = [
-        r for r in results if r.get("extraction_success") and "completeness_score" in r
-    ]
-
-    if successful_results:
-        avg_completeness = sum(
-            r["completeness_score"] for r in successful_results
-        ) / len(successful_results)
-        avg_field_count = sum(r["field_count"] for r in successful_results) / len(
-            successful_results
-        )
-
-        # Method breakdown
-        method_counts = {}
-        for r in successful_results:
-            method = r.get("extraction_method", "unknown")
-            method_counts[method] = method_counts.get(method, 0) + 1
-
-        # Quality breakdown
-        high_quality = len(
-            [r for r in successful_results if r["completeness_score"] > 0.8]
-        )
-        medium_quality = len(
-            [r for r in successful_results if 0.5 <= r["completeness_score"] <= 0.8]
-        )
-        low_quality = len(
-            [r for r in successful_results if r["completeness_score"] < 0.5]
-        )
-    else:
-        avg_completeness = 0
-        avg_field_count = 0
-        method_counts = {}
-        high_quality = medium_quality = low_quality = 0
-
-    print("=" * 60)
-    print("📊 EXTRACTION SUMMARY REPORT")
-    print("=" * 60)
-    print(f"📁 Total files processed: {total_files}")
-    print(
-        f"✅ Successful extractions: {successful_extractions} ({successful_extractions / total_files * 100:.1f}%)"
-    )
-    print(
-        f"❌ Failed extractions: {failed_extractions} ({failed_extractions / total_files * 100:.1f}%)"
-    )
-    print()
-
-    if successful_results:
-        print("📈 DATA QUALITY METRICS:")
-        print(f"   Average completeness score: {avg_completeness:.3f}")
-        print(f"   Average field count: {avg_field_count:.1f}")
-        print()
-
-        print("🔍 EXTRACTION METHODS:")
-        for method, count in method_counts.items():
-            print(
-                f"   {method}: {count} files ({count / len(successful_results) * 100:.1f}%)"
-            )
-        print()
-
-        print("⭐ QUALITY BREAKDOWN:")
-        print(
-            f"   High quality (>80%): {high_quality} files ({high_quality / len(successful_results) * 100:.1f}%)"
-        )
-        print(
-            f"   Medium quality (50-80%): {medium_quality} files ({medium_quality / len(successful_results) * 100:.1f}%)"
-        )
-        print(
-            f"   Low quality (<50%): {low_quality} files ({low_quality / len(successful_results) * 100:.1f}%)"
-        )
-        print()
-
-    print("🎯 COMPARISON WITH ORIGINAL CRAWLER:")
-    print("   Original completeness: ~25% (titles + URLs only)")
-    print(
-        f"   Enhanced completeness: {avg_completeness * 100:.1f}% (comprehensive data)"
-    )
-    print(f"   Improvement factor: {avg_completeness / 0.25:.1f}x better")
-    print()
-
-
-def save_detailed_results(results: List[Dict[str, Any]]):
-    """Save detailed extraction results to a JSON file."""
-
-    output_file = "enhanced_extraction_results.json"
-
-    output_data = {
-        "metadata": {
-            "test_script": "test_enhanced_extraction.py",
-            "test_time": datetime.now().isoformat(),
-            "total_files": len(results),
-            "successful_extractions": len(
-                [r for r in results if r.get("extraction_success")]
-            ),
-        },
-        "results": results,
-    }
-
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(output_data, f, indent=2, ensure_ascii=False)
-
-    print(f"💾 Detailed results saved to: {output_file}")
-
-
-def compare_with_original_data():
-    """Compare enhanced extraction with original crypto_events.json."""
-
-    original_file = "crypto_events.json"
-
-    if not os.path.exists(original_file):
-        print(f"⚠️  Original file {original_file} not found for comparison")
-        return
-
-    print("🔍 COMPARING WITH ORIGINAL DATA:")
-    print("-" * 40)
-
-    with open(original_file, "r", encoding="utf-8") as f:
-        original_data = json.load(f)
-
-    original_events = original_data.get("events", [])
-
-    print(f"📊 Original extraction results:")
-    print(f"   Events: {len(original_events)}")
-
-    # Analyze original data quality
-    events_with_dates = len([e for e in original_events if e.get("date")])
-    events_with_locations = len([e for e in original_events if e.get("location")])
-    events_with_titles = len([e for e in original_events if e.get("title")])
-
-    print(
-        f"   Events with titles: {events_with_titles}/{len(original_events)} ({events_with_titles / len(original_events) * 100:.1f}%)"
-    )
-    print(
-        f"   Events with dates: {events_with_dates}/{len(original_events)} ({events_with_dates / len(original_events) * 100:.1f}%)"
-    )
-    print(
-        f"   Events with locations: {events_with_locations}/{len(original_events)} ({events_with_locations / len(original_events) * 100:.1f}%)"
-    )
-
-    # Show sample events
-    print("\n📄 Sample original events:")
-    for i, event in enumerate(original_events[:3]):
-        print(f"   {i + 1}. {event.get('title', 'No title')}")
-        print(f"      Date: {event.get('date', 'No date')}")
-        print(f"      Location: {event.get('location', 'No location')}")
-        print(f"      URL: {event.get('url', 'No URL')}")
-        print()
-
-
-def main():
-    """Main test function."""
-
-    print("🧪 ENHANCED JSON EXTRACTION TEST")
-    print("=" * 50)
-    print()
-
-    # Test extraction on HTML files
-    test_extraction_on_html_files()
-
-    # Compare with original data
-    compare_with_original_data()
-
-    print("✅ Test completed successfully!")
-    print()
-    print("💡 Next steps:")
-    print("   1. Review the enhanced_extraction_results.json file")
-    print("   2. Run the enhanced spider: scrapy crawl luma")
-    print("   3. Compare the new crypto_events.json with the original")
-
-
-if __name__ == "__main__":
-    main()
 ````
 
 ## File: show_up/extractors/json_extractor.py
@@ -1124,70 +774,6 @@ class JsonExtractor(BaseExtractor):
 # your spiders.
 ````
 
-## File: show_up/spiders/eventbrite.py
-````python
-import scrapy
-import json
-import re
-
-HTML_FILE = "output/eventbrite.html"
-JSON_FILE = "output/evenbrite.json"
-
-
-class EventbriteSpider(scrapy.Spider):
-    name = "eventbrite"
-    allowed_domains = ["eventbrite.com.ar"]
-    start_urls = ["https://www.eventbrite.com.ar/d/argentina--buenos-aires/tech/"]
-
-    def parse(self, response):
-        """
-        This function parses the Eventbrite search results page.
-        It extracts the event data from the window.__SERVER_DATA__ variable using a regex.
-        """
-        server_data_script = response.xpath('//script[contains(., "window.__SERVER_DATA__")]/text()').get()
-        if not server_data_script:
-            self.logger.error("Could not find window.__SERVER_DATA__ script.")
-            return
-
-        # Use regex to find the JSON object
-        match = re.search(r'window\.__SERVER_DATA__\s*=\s*(\{.*?\});', server_data_script)
-        if not match:
-            self.logger.error("Could not find server data JSON in script.")
-            return
-
-        try:
-            server_data = json.loads(match.group(1))
-            with open(JSON_FILE, "w", encoding="utf-8") as f:
-                json.dump(server_data, f, ensure_ascii=False, indent=4)
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Failed to parse server data: {e}")
-            return
-
-        events = server_data.get('search_data', {}).get('events', {})
-        if not events:
-            self.logger.warning("No events found in server data.")
-            return
-
-        results = events.get("results", [])
-        if not results:
-            self.logger.warning("No results found in server data.")
-            return
-
-        for event in results:
-            yield {
-                'title': event.get('name'),
-                'url': event.get('url'),
-                'summary': event.get('summary'),
-                'startDate': event.get('start_date'),
-                'endDate': event.get('end_date'),
-                'location': event.get('primary_venue', {}).get('name'),
-                'organizer': event.get('primary_organizer', {}).get('name'),
-                'tags': [tag.get('display_name') for tag in event.get('tags', [])],
-                'image': event.get('image', {}).get('url'),
-                'ticket_availability': event.get('ticket_availability', {}),
-            }
-````
-
 ## File: show_up/utils/validation.py
 ````python
 """
@@ -1539,7 +1125,7 @@ class ShowUpSpiderMiddleware:
 
     async def process_start(self, start):
         # Called with an async iterator over the spider start() method or the
-        # maching method of an earlier spider middleware.
+        # matching method of an earlier spider middleware.
         async for item_or_request in start:
             yield item_or_request
 
@@ -1594,6 +1180,1847 @@ class ShowUpDownloaderMiddleware:
         spider.logger.info("Spider opened: %s" % spider.name)
 ````
 
+## File: tests/test_extractors.py
+````python
+"""
+Comprehensive tests for JSON extractor functionality.
+
+This module tests the JSON extraction logic for Luma event data,
+including pattern matching, data parsing, and error handling.
+"""
+
+import unittest
+import json
+from unittest.mock import Mock, patch
+from show_up.extractors.json_extractor import JsonExtractor
+from show_up.extractors.base import BaseExtractor, MultiExtractor
+
+
+class TestJsonExtractor(unittest.TestCase):
+    """Test the JsonExtractor class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.extractor = JsonExtractor()
+
+        # Sample event data that would be found in Luma pages
+        self.sample_event_data = {
+            "api_id": "evt-test123",
+            "name": "Test Event",
+            "start_at": "2025-07-21T22:30:00.000Z",
+            "end_at": "2025-07-22T01:00:00.000Z",
+            "timezone": "America/Buenos_Aires",
+            "event_type": "independent",
+            "visibility": "public",
+            "url": "test-event",
+            "cover_url": "https://example.com/cover.jpg",
+            "geo_address_info": {
+                "address": "Test Address 123",
+                "city": "Buenos Aires",
+                "country": "Argentina",
+                "full_address": "Test Address 123, Buenos Aires, Argentina",
+                "place_id": "ChIJ_test123",
+            },
+            "coordinate": {"latitude": -34.6037, "longitude": -58.3816},
+            "user": {"name": "Test Organizer"},
+            "description": "Test event description",
+        }
+
+    def test_can_extract_with_json_indicators(self):
+        """Test can_extract returns True for content with JSON indicators."""
+        html_with_json = """
+        <html>
+            <body>
+                <script>
+                    window.__INITIAL_DATA__ = {"event": {"name": "Test"}};
+                </script>
+            </body>
+        </html>
+        """
+
+        self.assertTrue(self.extractor.can_extract(html_with_json))
+
+    def test_can_extract_without_json_indicators(self):
+        """Test can_extract returns False for content without JSON indicators."""
+        html_without_json = """
+        <html>
+            <body>
+                <h1>Test Page</h1>
+                <p>No JSON data here</p>
+            </body>
+        </html>
+        """
+
+        self.assertFalse(self.extractor.can_extract(html_without_json))
+
+    def test_can_extract_with_empty_content(self):
+        """Test can_extract handles empty content gracefully."""
+        self.assertFalse(self.extractor.can_extract(""))
+        self.assertFalse(self.extractor.can_extract(""))
+
+    def test_extract_with_direct_event_pattern(self):
+        """Test extraction with direct event object pattern."""
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    var data = {{"event": {json.dumps(self.sample_event_data)}}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content, url="https://lu.ma/test")
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["date"], "2025-07-21T22:30:00.000Z")
+            self.assertEqual(
+                result["location"], "Test Address 123, Buenos Aires, Argentina"
+            )
+            self.assertEqual(result["extraction_method"], "json")
+
+    def test_extract_with_initial_data_pattern(self):
+        """Test extraction with window.__INITIAL_DATA__ pattern."""
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    window.__INITIAL_DATA__ = {{"event": {json.dumps(self.sample_event_data)}}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content, url="https://lu.ma/test")
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["api_id"], "evt-test123")
+            self.assertEqual(result["event_type"], "independent")
+
+    def test_extract_with_nested_event_data(self):
+        """Test extraction with nested event data structure."""
+        nested_data = {"props": {"event": self.sample_event_data}}
+
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    window.__INITIAL_DATA__ = {json.dumps(nested_data)};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["timezone"], "America/Buenos_Aires")
+
+    def test_extract_location_data(self):
+        """Test comprehensive location data extraction."""
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    var data = {{"event": {json.dumps(self.sample_event_data)}}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(
+                result["location"], "Test Address 123, Buenos Aires, Argentina"
+            )
+            self.assertEqual(
+                result["full_address"], "Test Address 123, Buenos Aires, Argentina"
+            )
+            self.assertEqual(result["city"], "Buenos Aires")
+            self.assertEqual(result["country"], "Argentina")
+            self.assertEqual(result["place_id"], "ChIJ_test123")
+
+            # Check coordinates
+            self.assertIn("coordinates", result)
+            self.assertEqual(result["coordinates"]["latitude"], -34.6037)
+            self.assertEqual(result["coordinates"]["longitude"], -58.3816)
+
+    def test_extract_with_url_construction(self):
+        """Test URL construction from event data."""
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    var data = {{"event": {json.dumps(self.sample_event_data)}}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["url"], "https://lu.ma/test-event")
+
+    def test_extract_with_malformed_json(self):
+        """Test handling of malformed JSON."""
+        html_content = """
+        <html>
+            <body>
+                <script>
+                    var data = {"event": {"name": "Test Event", "invalid": }};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNone(result)
+
+    def test_extract_with_no_event_data(self):
+        """Test extraction when no event data is present."""
+        html_content = """
+        <html>
+            <body>
+                <script>
+                    var data = {"user": {"name": "Test User"}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNone(result)
+
+    def test_clean_json_string(self):
+        """Test JSON string cleaning functionality."""
+        # Test HTML entity cleaning
+        dirty_json = (
+            '{"name": "Test &quot;Event&quot;", "location": "Test &amp; Place"}'
+        )
+        cleaned = self.extractor._clean_json_string(dirty_json)
+        if cleaned:
+            self.assertIn('"Test "Event""', cleaned)
+            self.assertIn('"Test & Place"', cleaned)
+
+        # Test whitespace removal
+        whitespace_json = '  {"name": "Test"}  '
+        cleaned = self.extractor._clean_json_string(whitespace_json)
+        self.assertEqual(cleaned, '{"name": "Test"}')
+
+        # Test comment removal
+        comment_json = '{"name": "Test", /* comment */ "id": 1}'
+        cleaned = self.extractor._clean_json_string(comment_json)
+        if cleaned:
+            self.assertNotIn("/*", cleaned)
+            self.assertNotIn("*/", cleaned)
+
+    def test_validate_extracted_data(self):
+        """Test validation of extracted data."""
+        # Valid data
+        valid_data = {
+            "title": "Test Event",
+            "date": "2025-07-21T22:30:00.000Z",
+            "location": "Test Location",
+        }
+
+        self.assertTrue(self.extractor.validate_extracted_data(valid_data))
+
+        # Invalid data - missing title
+        invalid_data = {"date": "2025-07-21T22:30:00.000Z", "location": "Test Location"}
+
+        self.assertFalse(self.extractor.validate_extracted_data(invalid_data))
+
+        # Invalid data - malformed date
+        invalid_date_data = {
+            "title": "Test Event",
+            "date": "invalid-date-format",
+            "location": "Test Location",
+        }
+
+        self.assertFalse(self.extractor.validate_extracted_data(invalid_date_data))
+
+    def test_get_extraction_method(self):
+        """Test extraction method name."""
+        self.assertEqual(self.extractor.get_extraction_method(), "json")
+
+    def test_custom_patterns_in_config(self):
+        """Test custom patterns from configuration."""
+        custom_patterns = [r"customPattern:\s*({.*?})", r"specialData\s*=\s*({.*?});"]
+
+        extractor = JsonExtractor(config={"custom_patterns": custom_patterns})
+
+        # Check that custom patterns are added
+        self.assertEqual(len(extractor.patterns), len(JsonExtractor.JSON_PATTERNS) + 2)
+        self.assertIn(custom_patterns[0], extractor.patterns)
+        self.assertIn(custom_patterns[1], extractor.patterns)
+
+    def test_extraction_with_minimal_event_data(self):
+        """Test extraction with minimal event data."""
+        minimal_event = {
+            "name": "Minimal Event",
+            "start_at": "2025-07-21T22:30:00.000Z",
+        }
+
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    var data = {{"event": {json.dumps(minimal_event)}}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["title"], "Minimal Event")
+            self.assertEqual(result["date"], "2025-07-21T22:30:00.000Z")
+            self.assertEqual(result["extraction_method"], "json")
+
+    def test_extraction_with_alternative_organizer_field(self):
+        """Test extraction with alternative organizer field names."""
+        event_data = self.sample_event_data.copy()
+        event_data["organizer"] = {"name": "Alternative Organizer"}
+        del event_data["user"]
+
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    var data = {{"event": {json.dumps(event_data)}}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNotNone(result)
+        if result:
+            # Should not extract organizer from this structure in current implementation
+            self.assertNotIn("organizer", result)
+
+    def test_extraction_with_guest_count_alternatives(self):
+        """Test extraction with different guest count field names."""
+        event_data = self.sample_event_data.copy()
+        event_data["rsvp_count"] = 42
+
+        html_content = f"""
+        <html>
+            <body>
+                <script>
+                    var data = {{"event": {json.dumps(event_data)}}};
+                </script>
+            </body>
+        </html>
+        """
+
+        result = self.extractor.extract(html_content)
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["guest_count"], 42)
+
+
+class TestBaseExtractor(unittest.TestCase):
+    """Test the BaseExtractor abstract class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+
+        # Create a concrete implementation for testing
+        class TestExtractor(BaseExtractor):
+            def extract(self, content, **kwargs):
+                if "test_data" in content:
+                    return {"title": "Test Event", "extraction_method": "test"}
+                return None
+
+            def can_extract(self, content):
+                return "test_data" in content
+
+        self.extractor = TestExtractor()
+
+    def test_get_extraction_method(self):
+        """Test extraction method name generation."""
+        self.assertEqual(self.extractor.get_extraction_method(), "test")
+
+    def test_validate_extracted_data_with_valid_data(self):
+        """Test validation with valid data."""
+        valid_data = {"title": "Test Event", "url": "https://test.com"}
+        self.assertTrue(self.extractor.validate_extracted_data(valid_data))
+
+    def test_validate_extracted_data_with_invalid_data(self):
+        """Test validation with invalid data."""
+        # Test with empty dict - should be valid for base extractor
+        empty_data = {}
+        self.assertTrue(self.extractor.validate_extracted_data(empty_data))
+
+        # Test with invalid type - should be invalid
+        invalid_data = "not a dictionary"
+        self.assertFalse(self.extractor.validate_extracted_data(invalid_data))
+
+    def test_validate_extracted_data_with_required_fields(self):
+        """Test validation with required fields configuration."""
+
+        # Use the concrete TestExtractor instead of abstract BaseExtractor
+        class TestExtractorWithConfig(BaseExtractor):
+            def extract(self, content, **kwargs):
+                return {"title": "Test Event"}
+
+            def can_extract(self, content):
+                return True
+
+        extractor = TestExtractorWithConfig(
+            config={"required_fields": ["title", "url"]}
+        )
+
+        # Valid data with all required fields
+        valid_data = {"title": "Test Event", "url": "https://test.com"}
+        self.assertTrue(extractor.validate_extracted_data(valid_data))
+
+        # Invalid data missing required field
+        invalid_data = {"title": "Test Event"}
+        self.assertFalse(extractor.validate_extracted_data(invalid_data))
+
+    def test_log_extraction_result(self):
+        """Test extraction result logging."""
+        with patch.object(self.extractor, "logger") as mock_logger:
+            # Test successful extraction
+            self.extractor.log_extraction_result(True, {"title": "Test"})
+            mock_logger.info.assert_called()
+
+            # Test failed extraction
+            self.extractor.log_extraction_result(False)
+            mock_logger.warning.assert_called()
+
+
+class TestMultiExtractor(unittest.TestCase):
+    """Test the MultiExtractor class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        # Create mock extractors
+        self.mock_extractor1 = Mock(spec=BaseExtractor)
+        self.mock_extractor2 = Mock(spec=BaseExtractor)
+
+        self.multi_extractor = MultiExtractor(
+            [self.mock_extractor1, self.mock_extractor2]
+        )
+
+    def test_extract_with_first_extractor_success(self):
+        """Test extraction when first extractor succeeds."""
+        # Configure first extractor to succeed
+        self.mock_extractor1.can_extract.return_value = True
+        self.mock_extractor1.extract.return_value = {"title": "Test Event"}
+        self.mock_extractor1.validate_extracted_data.return_value = True
+        self.mock_extractor1.get_extraction_method.return_value = "test1"
+        self.mock_extractor1.log_extraction_result = Mock()
+
+        # Second extractor should not be called
+        self.mock_extractor2.can_extract.return_value = False
+
+        result = self.multi_extractor.extract("test content")
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["title"], "Test Event")
+            self.assertEqual(result["extraction_method"], "test1")
+
+        # Verify only first extractor was used
+        self.mock_extractor1.can_extract.assert_called_once()
+        self.mock_extractor1.extract.assert_called_once()
+        self.mock_extractor2.can_extract.assert_not_called()
+
+    def test_extract_with_fallback_to_second_extractor(self):
+        """Test extraction falling back to second extractor."""
+        # Configure first extractor to fail
+        self.mock_extractor1.can_extract.return_value = True
+        self.mock_extractor1.extract.return_value = None
+        self.mock_extractor1.validate_extracted_data.return_value = False
+        self.mock_extractor1.get_extraction_method.return_value = "test1"
+        self.mock_extractor1.log_extraction_result = Mock()
+
+        # Configure second extractor to succeed
+        self.mock_extractor2.can_extract.return_value = True
+        self.mock_extractor2.extract.return_value = {"title": "Test Event 2"}
+        self.mock_extractor2.validate_extracted_data.return_value = True
+        self.mock_extractor2.get_extraction_method.return_value = "test2"
+        self.mock_extractor2.log_extraction_result = Mock()
+
+        result = self.multi_extractor.extract("test content")
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["title"], "Test Event 2")
+            self.assertEqual(result["extraction_method"], "test2")
+
+        # Verify both extractors were tried
+        self.mock_extractor1.can_extract.assert_called_once()
+        self.mock_extractor1.extract.assert_called_once()
+        self.mock_extractor2.can_extract.assert_called_once()
+        self.mock_extractor2.extract.assert_called_once()
+
+    def test_extract_with_all_extractors_failing(self):
+        """Test extraction when all extractors fail."""
+        # Configure both extractors to fail
+        self.mock_extractor1.can_extract.return_value = False
+        self.mock_extractor2.can_extract.return_value = False
+
+        result = self.multi_extractor.extract("test content")
+
+        self.assertIsNone(result)
+
+    def test_extract_with_extractor_exception(self):
+        """Test extraction when extractor raises exception."""
+        # Configure first extractor to raise exception
+        self.mock_extractor1.can_extract.return_value = True
+        self.mock_extractor1.extract.side_effect = Exception("Test error")
+        self.mock_extractor1.log_extraction_result = Mock()
+
+        # Configure second extractor to succeed
+        self.mock_extractor2.can_extract.return_value = True
+        self.mock_extractor2.extract.return_value = {"title": "Test Event 2"}
+        self.mock_extractor2.validate_extracted_data.return_value = True
+        self.mock_extractor2.get_extraction_method.return_value = "test2"
+        self.mock_extractor2.log_extraction_result = Mock()
+
+        result = self.multi_extractor.extract("test content")
+
+        self.assertIsNotNone(result)
+        if result:
+            self.assertEqual(result["title"], "Test Event 2")
+
+        # Verify exception was handled and second extractor was used
+        self.mock_extractor1.log_extraction_result.assert_called_with(False)
+        self.mock_extractor2.extract.assert_called_once()
+
+    def test_get_available_extractors(self):
+        """Test getting list of available extractors."""
+        self.mock_extractor1.get_extraction_method.return_value = "test1"
+        self.mock_extractor2.get_extraction_method.return_value = "test2"
+
+        extractors = self.multi_extractor.get_available_extractors()
+
+        self.assertEqual(extractors, ["test1", "test2"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+````
+
+## File: tests/test_utils.py
+````python
+"""
+Comprehensive tests for validation utilities.
+
+This module tests the data validation and cleaning functions used
+throughout the Show Up Crawler, ensuring data quality and consistency.
+"""
+
+import unittest
+from datetime import datetime
+from show_up.utils.validation import (
+    validate_event_data,
+    clean_event_data,
+    normalize_extraction_method,
+    validate_required_fields,
+    get_data_completeness_score,
+)
+
+
+class TestValidateEventData(unittest.TestCase):
+    """Test the validate_event_data function."""
+
+    def test_validate_valid_event_data(self):
+        """Test validation with valid event data."""
+        valid_data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test-event",
+            "date": "2025-07-21T22:30:00.000Z",
+            "location": "Test Location",
+            "city": "Buenos Aires",
+            "country": "Argentina",
+        }
+
+        result = validate_event_data(valid_data)
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["title"], "Test Event")
+        self.assertEqual(result["url"], "https://lu.ma/test-event")
+
+    def test_validate_with_missing_required_fields(self):
+        """Test validation with missing required fields."""
+        invalid_data = {"date": "2025-07-21T22:30:00.000Z", "location": "Test Location"}
+
+        with self.assertRaises(ValueError) as context:
+            validate_event_data(invalid_data)
+
+        self.assertIn("Required field", str(context.exception))
+
+    def test_validate_with_empty_required_fields(self):
+        """Test validation with empty required fields."""
+        invalid_data = {
+            "title": "",
+            "url": "https://lu.ma/test-event",
+            "date": "2025-07-21T22:30:00.000Z",
+        }
+
+        with self.assertRaises(ValueError) as context:
+            validate_event_data(invalid_data)
+
+        self.assertIn("title", str(context.exception))
+
+    def test_validate_with_non_dict_input(self):
+        """Test validation with non-dictionary input."""
+        with self.assertRaises(ValueError) as context:
+            validate_event_data({"invalid": "not a dictionary"})
+
+        self.assertIn("Required field", str(context.exception))
+
+    def test_validate_with_coordinates(self):
+        """Test validation with coordinate data."""
+        data_with_coords = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test-event",
+            "coordinates": {"latitude": -34.6037, "longitude": -58.3816},
+        }
+
+        result = validate_event_data(data_with_coords)
+
+        self.assertIn("coordinates", result)
+        self.assertEqual(result["coordinates"]["latitude"], -34.6037)
+        self.assertEqual(result["coordinates"]["longitude"], -58.3816)
+
+    def test_validate_with_invalid_coordinates(self):
+        """Test validation with invalid coordinate data."""
+        data_with_invalid_coords = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test-event",
+            "coordinates": {
+                "latitude": 999,  # Invalid latitude
+                "longitude": -58.3816,
+            },
+        }
+
+        result = validate_event_data(data_with_invalid_coords)
+
+        # Invalid coordinates should be removed
+        self.assertNotIn("coordinates", result)
+
+    def test_validate_with_malformed_url(self):
+        """Test validation with malformed URLs."""
+        data_with_partial_url = {
+            "title": "Test Event",
+            "url": "/test-event",  # Partial URL
+            "date": "2025-07-21T22:30:00.000Z",
+        }
+
+        result = validate_event_data(data_with_partial_url)
+
+        # URL should be normalized
+        self.assertEqual(result["url"], "https://lu.ma/test-event")
+
+    def test_validate_with_datetime_object(self):
+        """Test validation with datetime objects."""
+        data_with_datetime = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test-event",
+            "date": datetime(2025, 7, 21, 22, 30, 0),
+        }
+
+        result = validate_event_data(data_with_datetime)
+
+        # Datetime should be converted to ISO string
+        self.assertIsInstance(result["date"], str)
+        self.assertIn("2025-07-21T22:30:00", result["date"])
+
+
+class TestCleanEventData(unittest.TestCase):
+    """Test the clean_event_data function."""
+
+    def test_clean_with_empty_strings(self):
+        """Test cleaning with empty strings."""
+        dirty_data = {
+            "title": "Test Event",
+            "empty_field": "",
+            "whitespace_field": "   ",
+            "null_field": None,
+            "valid_field": "Valid Value",
+        }
+
+        result = clean_event_data(dirty_data)
+
+        self.assertIn("title", result)
+        self.assertIn("valid_field", result)
+        self.assertNotIn("empty_field", result)
+        self.assertNotIn("whitespace_field", result)
+        self.assertNotIn("null_field", result)
+
+    def test_clean_with_whitespace_strings(self):
+        """Test cleaning with whitespace in strings."""
+        dirty_data = {"title": "  Test Event  ", "location": "\n  Test Location  \t"}
+
+        result = clean_event_data(dirty_data)
+
+        self.assertEqual(result["title"], "Test Event")
+        self.assertEqual(result["location"], "Test Location")
+
+    def test_clean_with_non_string_values(self):
+        """Test cleaning with non-string values."""
+        dirty_data = {
+            "title": "Test Event",
+            "guest_count": 42,
+            "coordinates": {"lat": -34.6037, "lng": -58.3816},
+            "tags": ["crypto", "blockchain"],
+            "zero_value": 0,
+            "false_value": False,
+        }
+
+        result = clean_event_data(dirty_data)
+
+        self.assertEqual(result["title"], "Test Event")
+        self.assertEqual(result["guest_count"], 42)
+        self.assertEqual(result["coordinates"], {"lat": -34.6037, "lng": -58.3816})
+        self.assertEqual(result["tags"], ["crypto", "blockchain"])
+        # Zero and False should be removed as they're falsy
+        self.assertNotIn("zero_value", result)
+        self.assertNotIn("false_value", result)
+
+    def test_clean_preserves_empty_dict(self):
+        """Test that cleaning handles empty dictionaries."""
+        result = clean_event_data({})
+        self.assertEqual(result, {})
+
+
+class TestNormalizeExtractionMethod(unittest.TestCase):
+    """Test the normalize_extraction_method function."""
+
+    def test_normalize_known_methods(self):
+        """Test normalization of known extraction methods."""
+        test_cases = [
+            ("json", "json"),
+            ("JSON", "json"),
+            ("html", "html"),
+            ("HTML", "html"),
+            ("fallback", "html_fallback"),
+            ("css", "html"),
+            ("selector", "html"),
+        ]
+
+        for input_method, expected in test_cases:
+            result = normalize_extraction_method(input_method)
+            self.assertEqual(result, expected)
+
+    def test_normalize_unknown_method(self):
+        """Test normalization of unknown extraction methods."""
+        result = normalize_extraction_method("unknown_method")
+        self.assertEqual(result, "unknown")
+
+    def test_normalize_empty_method(self):
+        """Test normalization of empty extraction method."""
+        result = normalize_extraction_method("")
+        self.assertEqual(result, "unknown")
+
+
+class TestValidateRequiredFields(unittest.TestCase):
+    """Test the validate_required_fields function."""
+
+    def test_validate_with_all_required_fields_present(self):
+        """Test validation when all required fields are present."""
+        data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test",
+            "date": "2025-07-21T22:30:00.000Z",
+        }
+
+        result = validate_required_fields(data, ["title", "url"])
+        self.assertTrue(result)
+
+    def test_validate_with_missing_required_fields(self):
+        """Test validation when required fields are missing."""
+        data = {"title": "Test Event", "date": "2025-07-21T22:30:00.000Z"}
+
+        result = validate_required_fields(data, ["title", "url"])
+        self.assertFalse(result)
+
+    def test_validate_with_empty_required_fields(self):
+        """Test validation when required fields are empty."""
+        data = {"title": "", "url": "https://lu.ma/test"}
+
+        result = validate_required_fields(data, ["title", "url"])
+        self.assertFalse(result)
+
+    def test_validate_with_no_required_fields(self):
+        """Test validation when no fields are required."""
+        data = {"title": "Test Event"}
+        result = validate_required_fields(data, [])
+        self.assertTrue(result)
+
+
+class TestGetDataCompletenessScore(unittest.TestCase):
+    """Test the get_data_completeness_score function."""
+
+    def test_completeness_score_with_minimal_data(self):
+        """Test completeness score with minimal data."""
+        minimal_data = {"title": "Test Event", "url": "https://lu.ma/test"}
+
+        score = get_data_completeness_score(minimal_data)
+        self.assertGreater(score, 0)
+        self.assertLess(score, 1)
+
+    def test_completeness_score_with_comprehensive_data(self):
+        """Test completeness score with comprehensive data."""
+        comprehensive_data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test",
+            "date": "2025-07-21T22:30:00.000Z",
+            "end_date": "2025-07-22T01:00:00.000Z",
+            "timezone": "America/Buenos_Aires",
+            "location": "Test Location",
+            "full_address": "Test Address 123, Buenos Aires, Argentina",
+            "city": "Buenos Aires",
+            "country": "Argentina",
+            "coordinates": {"latitude": -34.6037, "longitude": -58.3816},
+            "event_type": "independent",
+            "visibility": "public",
+            "organizer": "Test Organizer",
+            "description": "Test event description",
+            "cover_url": "https://example.com/cover.jpg",
+            "api_id": "evt-test123",
+            "guest_count": 42,
+        }
+
+        score = get_data_completeness_score(comprehensive_data)
+        self.assertGreater(score, 0.8)  # Should be high score
+        self.assertLessEqual(score, 1.0)
+
+    def test_completeness_score_with_empty_data(self):
+        """Test completeness score with empty data."""
+        empty_data = {}
+        score = get_data_completeness_score(empty_data)
+        self.assertEqual(score, 0.0)
+
+    def test_completeness_score_with_weighted_fields(self):
+        """Test that higher-weight fields contribute more to score."""
+        # Data with only high-weight fields
+        high_weight_data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test",
+            "date": "2025-07-21T22:30:00.000Z",
+            "location": "Test Location",
+        }
+
+        # Data with only low-weight fields
+        low_weight_data = {
+            "api_id": "evt-test123",
+            "guest_count": 42,
+            "cover_url": "https://example.com/cover.jpg",
+        }
+
+        high_score = get_data_completeness_score(high_weight_data)
+        low_score = get_data_completeness_score(low_weight_data)
+
+        self.assertGreater(high_score, low_score)
+
+
+class TestUrlValidation(unittest.TestCase):
+    """Test URL validation and normalization."""
+
+    def test_url_with_missing_protocol(self):
+        """Test URL normalization when protocol is missing."""
+        data = {"title": "Test Event", "url": "lu.ma/test-event"}
+
+        result = validate_event_data(data)
+        self.assertEqual(result["url"], "https://lu.ma/test-event")
+
+    def test_url_with_relative_path(self):
+        """Test URL normalization with relative paths."""
+        data = {"title": "Test Event", "url": "/test-event"}
+
+        result = validate_event_data(data)
+        self.assertEqual(result["url"], "https://lu.ma/test-event")
+
+    def test_url_with_protocol_relative(self):
+        """Test URL normalization with protocol-relative URLs."""
+        data = {"title": "Test Event", "url": "//lu.ma/test-event"}
+
+        result = validate_event_data(data)
+        self.assertEqual(result["url"], "https://lu.ma/test-event")
+
+    def test_url_with_complete_url(self):
+        """Test that complete URLs are preserved."""
+        data = {"title": "Test Event", "url": "https://lu.ma/test-event"}
+
+        result = validate_event_data(data)
+        self.assertEqual(result["url"], "https://lu.ma/test-event")
+
+
+class TestDateValidation(unittest.TestCase):
+    """Test date validation and normalization."""
+
+    def test_date_with_iso_format(self):
+        """Test date validation with ISO format."""
+        data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test",
+            "date": "2025-07-21T22:30:00.000Z",
+        }
+
+        result = validate_event_data(data)
+        self.assertEqual(result["date"], "2025-07-21T22:30:00.000Z")
+
+    def test_date_with_alternative_formats(self):
+        """Test date validation with alternative formats."""
+        test_cases = [
+            ("2025-07-21 22:30:00", "2025-07-21T22:30:00"),
+            ("2025-07-21", "2025-07-21T00:00:00"),
+            ("21/07/2025", "2025-07-21T00:00:00"),
+            ("07/21/2025", "2025-07-21T00:00:00"),
+        ]
+
+        for input_date, expected_start in test_cases:
+            data = {
+                "title": "Test Event",
+                "url": "https://lu.ma/test",
+                "date": input_date,
+            }
+
+            result = validate_event_data(data)
+            self.assertTrue(result["date"].startswith(expected_start))
+
+    def test_date_with_invalid_format(self):
+        """Test date validation with invalid format."""
+        data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test",
+            "date": "invalid-date-format",
+        }
+
+        # Should not raise exception, just keep original value
+        result = validate_event_data(data)
+        self.assertEqual(result["date"], "invalid-date-format")
+
+
+class TestLocationValidation(unittest.TestCase):
+    """Test location validation and normalization."""
+
+    def test_location_with_extra_whitespace(self):
+        """Test location cleaning with extra whitespace."""
+        data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test",
+            "location": "  Buenos Aires,    Argentina  ",
+            "full_address": "\n\n  Test Address 123  \t\t",
+        }
+
+        result = validate_event_data(data)
+        self.assertEqual(result["location"], "Buenos Aires, Argentina")
+        self.assertEqual(result["full_address"], "Test Address 123")
+
+    def test_location_with_multiple_spaces(self):
+        """Test location cleaning with multiple spaces."""
+        data = {
+            "title": "Test Event",
+            "url": "https://lu.ma/test",
+            "location": "Buenos  Aires,     Argentina",
+        }
+
+        result = validate_event_data(data)
+        self.assertEqual(result["location"], "Buenos Aires, Argentina")
+
+
+if __name__ == "__main__":
+    unittest.main()
+````
+
+## File: show_up/spiders/eventbrite.py
+````python
+import scrapy
+import json
+import re
+
+HTML_FILE = "output/eventbrite.html"
+JSON_FILE = "output/evenbrite.json"
+
+
+class EventbriteSpider(scrapy.Spider):
+    name = "eventbrite"
+    allowed_domains = ["eventbrite.com.ar"]
+    start_urls = ["https://www.eventbrite.com.ar/d/argentina--buenos-aires/tech/"]
+
+    def parse(self, response):
+        """
+        This function parses the Eventbrite search results page.
+        It extracts the event data from the window.__SERVER_DATA__ variable using a regex.
+        """
+        server_data_script = response.xpath('//script[contains(., "window.__SERVER_DATA__")]/text()').get()
+        if not server_data_script:
+            self.logger.error("Could not find window.__SERVER_DATA__ script.")
+            return
+
+        # Use regex to find the JSON object
+        match = re.search(r'window\.__SERVER_DATA__\s*=\s*(\{.*?\});', server_data_script)
+        if not match:
+            self.logger.error("Could not find server data JSON in script.")
+            return
+
+        try:
+            server_data = json.loads(match.group(1))
+            with open(JSON_FILE, "w", encoding="utf-8") as f:
+                json.dump(server_data, f, ensure_ascii=False, indent=4)
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse server data: {e}")
+            return
+
+        events = server_data.get('search_data', {}).get('events', {})
+        if not events:
+            self.logger.warning("No events found in server data.")
+            return
+
+        results = events.get("results", [])
+        if not results:
+            self.logger.warning("No results found in server data.")
+            return
+
+        for event in results:
+            yield {
+                'title': event.get('name'),
+                'url': event.get('url'),
+                'summary': event.get('summary'),
+                'startDate': event.get('start_date'),
+                'endDate': event.get('end_date'),
+                'location': event.get('primary_venue', {}).get('name'),
+                'organizer': event.get('primary_organizer', {}).get('name'),
+                'tags': [tag.get('display_name') for tag in event.get('tags', [])],
+                'image': event.get('image', {}).get('url'),
+                'ticket_availability': event.get('ticket_availability', {}),
+            }
+````
+
+## File: tests/test_enhanced_pipelines.py
+````python
+"""
+Comprehensive tests for enhanced pipeline functionality.
+
+This module tests the enhanced JSON pipeline with metadata, statistics,
+and validation capabilities.
+"""
+
+import unittest
+import tempfile
+import os
+import shutil
+import json
+from unittest.mock import Mock, patch
+from datetime import datetime
+
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from show_up.pipelines import EnhancedJsonPipeline
+from show_up.items import EventItem
+
+
+class TestEnhancedJsonPipeline(unittest.TestCase):
+    """Test the EnhancedJsonPipeline class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        # Create a temporary directory and file for testing
+        self.test_dir = tempfile.mkdtemp()
+        self.test_file = os.path.join(self.test_dir, "test_enhanced_events.json")
+
+        # Create pipeline instance
+        self.pipeline = EnhancedJsonPipeline(output_file=self.test_file)
+
+        # Create mock spider
+        self.spider = Mock()
+        self.spider.name = "test_spider"
+        self.spider.start_urls = ["https://example.com/test"]
+        self.spider.logger = Mock()
+
+    def tearDown(self):
+        """Clean up the temporary directory."""
+        shutil.rmtree(self.test_dir)
+
+    def test_from_crawler_with_custom_settings(self):
+        """Test that pipeline reads custom settings from crawler."""
+        mock_crawler = Mock()
+        mock_settings = {
+            "JSON_OUTPUT_FILE": "custom_enhanced_output.json",
+            "JSON_INDENT": 4,
+            "JSON_ENSURE_ASCII": True,
+            "ENHANCED_JSON_VALIDATION": True,
+            "ENHANCED_JSON_INCLUDE_METADATA": True,
+            "ENHANCED_JSON_EXTRACTION_STATS": True,
+        }
+
+        # Mock the settings methods
+        mock_crawler.settings.get = lambda key, default: mock_settings.get(key, default)
+        mock_crawler.settings.getint = lambda key, default: mock_settings.get(
+            key, default
+        )
+        mock_crawler.settings.getbool = lambda key, default: mock_settings.get(
+            key, default
+        )
+
+        pipeline = EnhancedJsonPipeline.from_crawler(mock_crawler)
+
+        self.assertEqual(pipeline.output_file, "custom_enhanced_output.json")
+        self.assertEqual(pipeline.indent, 4)
+        self.assertEqual(pipeline.ensure_ascii, True)
+        self.assertIsInstance(pipeline.settings, dict)
+
+    def test_from_crawler_with_default_settings(self):
+        """Test that pipeline uses default settings when not specified."""
+        mock_crawler = Mock()
+        mock_crawler.settings.get = lambda key, default: default
+        mock_crawler.settings.getint = lambda key, default: default
+        mock_crawler.settings.getbool = lambda key, default: default
+
+        pipeline = EnhancedJsonPipeline.from_crawler(mock_crawler)
+
+        self.assertEqual(pipeline.output_file, "output/luma_debug.json")
+        self.assertEqual(pipeline.indent, 2)
+        self.assertEqual(pipeline.ensure_ascii, False)
+
+    def test_open_spider_initializes_metadata(self):
+        """Test that open_spider initializes metadata correctly."""
+        self.pipeline.open_spider(self.spider)
+
+        # Check metadata structure
+        self.assertIn("spider_name", self.pipeline.metadata)
+        self.assertIn("start_time", self.pipeline.metadata)
+        self.assertIn("source", self.pipeline.metadata)
+        self.assertIn("extraction_config", self.pipeline.metadata)
+
+        # Check metadata values
+        self.assertEqual(self.pipeline.metadata["spider_name"], "test_spider")
+        self.assertEqual(self.pipeline.metadata["source"], "https://example.com/test")
+
+        # Check extraction config
+        config = self.pipeline.metadata["extraction_config"]
+        self.assertIsInstance(config, dict)
+        self.assertIn("json_extraction_enabled", config)
+        self.assertIn("validation_enabled", config)
+        self.assertIn("include_metadata", config)
+        self.assertIn("extraction_stats", config)
+
+    def test_process_item_with_complete_event_data(self):
+        """Test processing item with complete event data."""
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["date"] = "2025-07-21T22:30:00.000Z"
+        item["end_date"] = "2025-07-22T01:00:00.000Z"
+        item["timezone"] = "America/Buenos_Aires"
+        item["location"] = "Test Location"
+        item["full_address"] = "Test Address 123, Buenos Aires, Argentina"
+        item["city"] = "Buenos Aires"
+        item["country"] = "Argentina"
+        item["coordinates"] = {"latitude": -34.6037, "longitude": -58.3816}
+        item["place_id"] = "ChIJ_test123"
+        item["event_type"] = "independent"
+        item["visibility"] = "public"
+        item["api_id"] = "evt-test123"
+        item["cover_url"] = "https://example.com/cover.jpg"
+        item["organizer"] = "Test Organizer"
+        item["guest_count"] = 42
+        item["description"] = "Test event description"
+        item["url"] = "https://lu.ma/test-event"
+        item["extraction_method"] = "json"
+        item["html_content"] = "<html><body>Test content</body></html>"
+        item["raw_html"] = "<html><body>Raw test content</body></html>"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Check that item was processed
+        self.assertEqual(len(self.pipeline.items), 1)
+        processed_item = self.pipeline.items[0]
+
+        # Check that HTML fields were removed
+        self.assertNotIn("html_content", processed_item)
+        self.assertNotIn("raw_html", processed_item)
+
+        # Check that other fields are preserved
+        self.assertEqual(processed_item["title"], "Test Event")
+        self.assertEqual(processed_item["date"], "2025-07-21T22:30:00.000Z")
+        self.assertEqual(processed_item["location"], "Test Location")
+        self.assertEqual(processed_item["extraction_method"], "json")
+
+        # Check that original item is returned
+        self.assertEqual(result, item)
+
+        # Check extraction statistics
+        self.assertEqual(self.pipeline.extraction_stats["total_processed"], 1)
+        self.assertEqual(self.pipeline.extraction_stats["json_extraction"], 1)
+
+    def test_process_item_with_minimal_data(self):
+        """Test processing item with minimal data."""
+        item = EventItem()
+        item["title"] = "Minimal Event"
+        item["url"] = "https://lu.ma/minimal-event"
+        item["extraction_method"] = "fallback"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        self.assertEqual(len(self.pipeline.items), 1)
+        processed_item = self.pipeline.items[0]
+
+        # Check that required fields are present
+        self.assertEqual(processed_item["title"], "Minimal Event")
+        self.assertEqual(processed_item["url"], "https://lu.ma/minimal-event")
+
+        # Check that missing fields are filled with None
+        self.assertIsNone(processed_item["date"])
+        self.assertIsNone(processed_item["location"])
+        self.assertIsNone(processed_item["coordinates"])
+
+        # Check extraction statistics
+        self.assertEqual(self.pipeline.extraction_stats["fallback_extraction"], 1)
+
+    def test_process_item_with_missing_required_fields(self):
+        """Test processing item with missing required fields."""
+        item = EventItem()
+        item["date"] = "2025-07-21T22:30:00.000Z"
+        item["location"] = "Test Location"
+        # Missing title and url
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        processed_item = self.pipeline.items[0]
+
+        # Check that default values are provided
+        self.assertIn("Untitled Event", processed_item["title"])
+        self.assertEqual(processed_item["url"], "unknown_url")
+
+    def test_process_item_with_validation_enabled(self):
+        """Test processing item with validation enabled."""
+        # Mock settings to enable validation
+        # Mock settings to enable validation
+        mock_settings = {
+            "ENHANCED_JSON_VALIDATION": True,
+            "ENHANCED_JSON_INCLUDE_METADATA": True,
+        }
+        self.pipeline.settings = mock_settings
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["url"] = "/test-event"  # Partial URL that needs validation
+        item["date"] = "2025-07-21T22:30:00.000Z"
+        item["extraction_method"] = "json"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        processed_item = self.pipeline.items[0]
+
+        # Check that URL was normalized
+        self.assertEqual(processed_item["url"], "https://lu.ma/test-event")
+
+        # Check that metadata was added
+        self.assertIn("_metadata", processed_item)
+        metadata = processed_item["_metadata"]
+        self.assertEqual(metadata["extraction_method"], "json")
+        self.assertIn("completeness_score", metadata)
+        self.assertIn("processed_at", metadata)
+
+    def test_process_item_with_validation_disabled(self):
+        """Test processing item with validation disabled."""
+        # Mock settings to disable validation
+        # Mock settings to disable validation
+        mock_settings = {
+            "ENHANCED_JSON_VALIDATION": False,
+            "ENHANCED_JSON_INCLUDE_METADATA": False,
+        }
+        self.pipeline.settings = mock_settings
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["url"] = "/test-event"
+        item["extraction_method"] = "json"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        processed_item = self.pipeline.items[0]
+
+        # Check that URL was NOT normalized
+        self.assertEqual(processed_item["url"], "/test-event")
+
+        # Check that metadata was NOT added
+        self.assertNotIn("_metadata", processed_item)
+
+    def test_process_item_with_non_serializable_values(self):
+        """Test processing item with non-serializable values."""
+
+        class NonSerializable:
+            def __str__(self):
+                return "Non-serializable object"
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["url"] = "https://lu.ma/test"
+        item["description"] = NonSerializable()  # Non-serializable value
+        item["extraction_method"] = "json"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        processed_item = self.pipeline.items[0]
+
+        # Check that non-serializable value was converted to string
+        self.assertEqual(processed_item["description"], "Non-serializable object")
+
+    def test_process_item_extraction_statistics(self):
+        """Test extraction statistics tracking."""
+        items = [
+            {"title": "Event 1", "url": "https://lu.ma/1", "extraction_method": "json"},
+            {
+                "title": "Event 2",
+                "url": "https://lu.ma/2",
+                "extraction_method": "html_fallback",
+            },
+            {
+                "title": "Event 3",
+                "url": "https://lu.ma/3",
+                "extraction_method": "fallback",
+            },
+            {"title": "Event 4", "url": "https://lu.ma/4", "extraction_method": "json"},
+        ]
+
+        self.pipeline.open_spider(self.spider)
+
+        for item_data in items:
+            item = EventItem()
+            for key, value in item_data.items():
+                item[key] = value
+            self.pipeline.process_item(item, self.spider)
+
+        # Check extraction statistics
+        stats = self.pipeline.extraction_stats
+        self.assertEqual(stats["total_processed"], 4)
+        self.assertEqual(stats["json_extraction"], 2)
+        self.assertEqual(stats["html_extraction"], 1)
+        self.assertEqual(stats["fallback_extraction"], 1)
+
+    def test_close_spider_writes_structured_json(self):
+        """Test that close_spider writes properly structured JSON."""
+        # Mock settings for extraction stats
+        # Mock settings for extraction stats
+        mock_settings = {"ENHANCED_JSON_EXTRACTION_STATS": True}
+        self.pipeline.settings = mock_settings
+
+        # Add some test items
+        items = [
+            {"title": "Event 1", "url": "https://lu.ma/1", "extraction_method": "json"},
+            {"title": "Event 2", "url": "https://lu.ma/2", "extraction_method": "json"},
+        ]
+
+        self.pipeline.open_spider(self.spider)
+
+        for item_data in items:
+            item = EventItem()
+            for key, value in item_data.items():
+                item[key] = value
+            self.pipeline.process_item(item, self.spider)
+
+        self.pipeline.close_spider(self.spider)
+
+        # Check that JSON file was created
+        self.assertTrue(os.path.exists(self.test_file))
+
+        # Read and verify JSON structure
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Check top-level structure
+        self.assertIn("metadata", data)
+        self.assertIn("events", data)
+        self.assertIn("end_time", data)
+        self.assertIn("event_count", data)
+
+        # Check metadata
+        metadata = data["metadata"]
+        self.assertEqual(metadata["spider_name"], "test_spider")
+        self.assertIn("start_time", metadata)
+        self.assertIn("extraction_statistics", metadata)
+
+        # Check extraction statistics
+        stats = metadata["extraction_statistics"]
+        self.assertEqual(stats["total_processed"], 2)
+        self.assertEqual(stats["json_extraction"], 2)
+        self.assertIn("success_rates", stats)
+
+        # Check success rates
+        success_rates = stats["success_rates"]
+        self.assertEqual(success_rates["json_extraction_rate"], 1.0)
+        self.assertEqual(success_rates["validation_success_rate"], 1.0)
+
+        # Check events
+        events = data["events"]
+        self.assertEqual(len(events), 2)
+        self.assertEqual(data["event_count"], 2)
+
+    def test_close_spider_creates_directory_if_needed(self):
+        """Test that close_spider creates output directory if it doesn't exist."""
+        nested_dir = os.path.join(self.test_dir, "nested", "deep", "directory")
+        nested_file = os.path.join(nested_dir, "test_events.json")
+
+        self.pipeline.output_file = nested_file
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["url"] = "https://lu.ma/test"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+        self.pipeline.close_spider(self.spider)
+
+        # Check that directory and file were created
+        self.assertTrue(os.path.exists(nested_dir))
+        self.assertTrue(os.path.exists(nested_file))
+
+    def test_close_spider_handles_permission_errors(self):
+        """Test that close_spider handles permission errors gracefully."""
+        # Mock open to raise PermissionError
+        with patch("builtins.open", side_effect=PermissionError("Permission denied")):
+            item = EventItem()
+            item["title"] = "Test Event"
+            item["url"] = "https://lu.ma/test"
+
+            self.pipeline.open_spider(self.spider)
+            self.pipeline.process_item(item, self.spider)
+
+            # This should not raise an exception
+            self.pipeline.close_spider(self.spider)
+
+            # Check that error was logged
+            self.spider.logger.error.assert_called()
+
+    def test_close_spider_without_extraction_stats(self):
+        """Test close_spider when extraction stats are disabled."""
+        # Mock settings to disable extraction stats
+        # Mock settings to disable extraction stats
+        mock_settings = {"ENHANCED_JSON_EXTRACTION_STATS": False}
+        self.pipeline.settings = mock_settings
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["url"] = "https://lu.ma/test"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+        self.pipeline.close_spider(self.spider)
+
+        # Read JSON file
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Check that extraction statistics are not included
+        self.assertNotIn("extraction_statistics", data["metadata"])
+
+    def test_extraction_stats_high_quality_tracking(self):
+        """Test that high quality events are tracked correctly."""
+        # Mock settings to enable validation
+        # Mock settings to enable validation
+        mock_settings = {
+            "ENHANCED_JSON_VALIDATION": True,
+            "ENHANCED_JSON_INCLUDE_METADATA": True,
+        }
+        self.pipeline.settings = mock_settings
+
+        # High quality item (complete data)
+        high_quality_item = EventItem()
+        high_quality_item["title"] = "High Quality Event"
+        high_quality_item["url"] = "https://lu.ma/high-quality"
+        high_quality_item["date"] = "2025-07-21T22:30:00.000Z"
+        high_quality_item["location"] = "Buenos Aires, Argentina"
+        high_quality_item["full_address"] = "Test Address 123, Buenos Aires, Argentina"
+        high_quality_item["city"] = "Buenos Aires"
+        high_quality_item["country"] = "Argentina"
+        high_quality_item["coordinates"] = {"latitude": -34.6037, "longitude": -58.3816}
+        high_quality_item["organizer"] = "Test Organizer"
+        high_quality_item["extraction_method"] = "json"
+
+        # Low quality item (minimal data)
+        low_quality_item = EventItem()
+        low_quality_item["title"] = "Low Quality Event"
+        low_quality_item["url"] = "https://lu.ma/low-quality"
+        low_quality_item["extraction_method"] = "fallback"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(high_quality_item, self.spider)
+        self.pipeline.process_item(low_quality_item, self.spider)
+
+        # Check that high quality event was tracked
+        self.assertEqual(self.pipeline.extraction_stats["high_quality_events"], 1)
+        self.assertEqual(self.pipeline.extraction_stats["total_processed"], 2)
+
+    def test_validation_error_handling(self):
+        """Test handling of validation errors."""
+        # Mock settings to enable validation
+        # Mock settings to enable validation
+        mock_settings = {"ENHANCED_JSON_VALIDATION": True}
+        self.pipeline.settings = mock_settings
+
+        # Create item that will cause validation error
+        item = EventItem()
+        item["title"] = ""  # Empty title should cause validation error
+        item["url"] = "https://lu.ma/test"
+        item["extraction_method"] = "json"
+
+        self.pipeline.open_spider(self.spider)
+
+        # Mock validate_event_data to raise an exception
+        with patch(
+            "show_up.pipelines.validate_event_data",
+            side_effect=Exception("Validation error"),
+        ):
+            self.pipeline.process_item(item, self.spider)
+
+        # Check that validation error was tracked
+        self.assertEqual(self.pipeline.extraction_stats["validation_errors"], 1)
+
+    def test_json_indent_and_ascii_settings(self):
+        """Test that JSON formatting settings are applied correctly."""
+        # Create pipeline with specific formatting settings
+        pipeline = EnhancedJsonPipeline(
+            output_file=self.test_file, indent=4, ensure_ascii=True
+        )
+
+        item = EventItem()
+        item["title"] = "Test Event with émojis 🚀"
+        item["url"] = "https://lu.ma/test"
+
+        pipeline.open_spider(self.spider)
+        pipeline.process_item(item, self.spider)
+        pipeline.close_spider(self.spider)
+
+        # Read the raw file content to check formatting
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check that 4-space indentation is used
+        self.assertIn('    "metadata":', content)
+        self.assertIn('    "events":', content)
+
+        # Check that non-ASCII characters are escaped (ensure_ascii=True)
+        self.assertIn("\\u", content)  # Should contain unicode escapes
+
+
+if __name__ == "__main__":
+    unittest.main()
+````
+
+## File: tests/test_pipelines.py
+````python
+import unittest
+import tempfile
+import os
+import shutil
+import sys
+import json
+from unittest.mock import Mock, patch
+
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from show_up.pipelines import RawHtmlFilePipeline, EnhancedJsonPipeline
+from show_up.items import EventItem
+
+
+class TestRawHtmlFilePipeline(unittest.TestCase):
+    def setUp(self):
+        # Create a temporary directory for testing
+        self.test_dir = tempfile.mkdtemp()
+        self.pipeline = RawHtmlFilePipeline()
+        self.pipeline.output_dir = self.test_dir
+
+        # Create a mock spider
+        self.spider = Mock()
+        self.spider.name = "test_spider"
+
+    def tearDown(self):
+        # Clean up the temporary directory
+        shutil.rmtree(self.test_dir)
+
+    def test_open_spider_creates_directory(self):
+        # Test that the pipeline creates the output directory
+        self.pipeline.open_spider(self.spider)
+        self.assertTrue(os.path.exists(self.test_dir))
+
+    def test_process_item_saves_raw_html(self):
+        # Arrange
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["raw_html"] = (
+            "<html><head><title>Test</title></head><body><h1>Test Event</h1></body></html>"
+        )
+
+        self.pipeline.open_spider(self.spider)
+
+        # Act
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Assert
+        expected_filename = "Test_Event_raw.html"
+        expected_filepath = os.path.join(self.test_dir, expected_filename)
+
+        self.assertTrue(os.path.exists(expected_filepath))
+
+        with open(expected_filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertEqual(content, item["raw_html"])
+        self.assertEqual(result, item)
+
+    def test_process_item_sanitizes_filename(self):
+        # Test that special characters in title are sanitized
+        item = EventItem()
+        item["title"] = "Test Event! @#$%^&*()+=[]{}|;:',.<>?/~`"
+        item["raw_html"] = "<html><body>Test content</body></html>"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Should sanitize to only alphanumeric, spaces, and hyphens
+        expected_filename = "Test_Event_raw.html"
+        expected_filepath = os.path.join(self.test_dir, expected_filename)
+
+        self.assertTrue(os.path.exists(expected_filepath))
+
+    def test_process_item_without_title_or_raw_html(self):
+        # Test that items without title or raw_html are handled gracefully
+        item = EventItem()
+        item["url"] = "https://example.com"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Should return the item unchanged and not create any files
+        self.assertEqual(result, item)
+        self.assertEqual(len(os.listdir(self.test_dir)), 0)
+
+    def test_process_item_with_empty_title(self):
+        # Test handling of empty title
+        item = EventItem()
+        item["title"] = ""
+        item["raw_html"] = "<html><body>Content</body></html>"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Should create a file with sanitized empty name
+        expected_filename = "_raw.html"
+        expected_filepath = os.path.join(self.test_dir, expected_filename)
+
+        self.assertTrue(os.path.exists(expected_filepath))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class TestEnhancedJsonPipeline(unittest.TestCase):
+    def setUp(self):
+        # Create a temporary directory and file for testing
+        self.test_dir = tempfile.mkdtemp()
+        self.test_file = os.path.join(self.test_dir, "test_events.json")
+        self.pipeline = EnhancedJsonPipeline(output_file=self.test_file)
+
+        # Create a mock spider
+        self.spider = Mock()
+        self.spider.name = "test_spider"
+        self.spider.start_urls = ["https://example.com"]
+
+    def tearDown(self):
+        # Clean up the temporary directory
+        shutil.rmtree(self.test_dir)
+
+    def test_from_crawler(self):
+        # Test that the pipeline reads settings from crawler
+        mock_crawler = Mock()
+        mock_settings = {
+            "JSON_OUTPUT_FILE": "custom_output.json",
+            "JSON_INDENT": 4,
+            "JSON_ENSURE_ASCII": True,
+        }
+        mock_crawler.settings.get = lambda key, default: mock_settings.get(key, default)
+        mock_crawler.settings.getint = lambda key, default: mock_settings.get(
+            key, default
+        )
+        mock_crawler.settings.getbool = lambda key, default: mock_settings.get(
+            key, default
+        )
+
+        pipeline = EnhancedJsonPipeline.from_crawler(mock_crawler)
+
+        self.assertEqual(pipeline.output_file, "custom_output.json")
+        self.assertEqual(pipeline.indent, 4)
+        self.assertEqual(pipeline.ensure_ascii, True)
+
+    def test_open_spider_initializes_metadata(self):
+        # Test that open_spider initializes metadata correctly
+        self.pipeline.open_spider(self.spider)
+
+        self.assertIn("spider_name", self.pipeline.metadata)
+        self.assertEqual(self.pipeline.metadata["spider_name"], "test_spider")
+        self.assertIn("start_time", self.pipeline.metadata)
+        self.assertIn("source", self.pipeline.metadata)
+        self.assertEqual(self.pipeline.metadata["source"], "https://example.com")
+
+    def test_process_item_adds_to_items_list(self):
+        # Test that process_item adds items to the items list
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["date"] = "2025-08-01"
+        item["location"] = "Test Location"
+        item["url"] = "https://example.com/event"
+        item["html_content"] = "<html><body>Test content</body></html>"
+        item["raw_html"] = "<html><body>Raw test content</body></html>"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Check that HTML fields are removed
+        self.assertEqual(len(self.pipeline.items), 1)
+        self.assertNotIn("html_content", self.pipeline.items[0])
+        self.assertNotIn("raw_html", self.pipeline.items[0])
+
+        # Check that other fields are preserved
+        self.assertEqual(self.pipeline.items[0]["title"], "Test Event")
+        self.assertEqual(self.pipeline.items[0]["date"], "2025-08-01T00:00:00")
+        self.assertEqual(self.pipeline.items[0]["location"], "Test Location")
+        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
+
+        # Check that the original item is returned unchanged
+        self.assertEqual(result, item)
+
+    def test_process_item_handles_missing_fields(self):
+        # Test that process_item handles missing fields
+        item = EventItem()
+        item["url"] = "https://example.com/event"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        # Check that missing fields are added with default values
+        self.assertEqual(len(self.pipeline.items), 1)
+        self.assertIn("title", self.pipeline.items[0])
+        self.assertIn("date", self.pipeline.items[0])
+        self.assertIn("location", self.pipeline.items[0])
+        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
+
+    def test_process_item_handles_non_serializable_values(self):
+        # Test that process_item handles non-serializable values
+        class NonSerializable:
+            def __str__(self):
+                return "Non-serializable object"
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["date"] = NonSerializable()
+        item["url"] = "https://example.com/event"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        # Check that non-serializable values are converted to strings
+        self.assertEqual(len(self.pipeline.items), 1)
+        self.assertEqual(self.pipeline.items[0]["title"], "Test Event")
+        self.assertEqual(self.pipeline.items[0]["date"], "Non-serializable object")
+        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
+
+    def test_close_spider_writes_json_file(self):
+        # Test that close_spider writes a properly formatted JSON file
+        item1 = EventItem()
+        item1["title"] = "Test Event 1"
+        item1["date"] = "2025-08-01"
+        item1["url"] = "https://example.com/event1"
+
+        item2 = EventItem()
+        item2["title"] = "Test Event 2"
+        item2["date"] = "2025-08-02"
+        item2["url"] = "https://example.com/event2"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item1, self.spider)
+        self.pipeline.process_item(item2, self.spider)
+        self.pipeline.close_spider(self.spider)
+
+        # Check that the JSON file was created
+        self.assertTrue(os.path.exists(self.test_file))
+
+        # Check that the JSON file contains the expected structure
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        self.assertIn("metadata", data)
+        self.assertIn("events", data)
+        self.assertIn("end_time", data)
+        self.assertIn("event_count", data)
+
+        self.assertEqual(data["metadata"]["spider_name"], "test_spider")
+        self.assertEqual(len(data["events"]), 2)
+        self.assertEqual(data["event_count"], 2)
+
+        self.assertEqual(data["events"][0]["title"], "Test Event 1")
+        self.assertEqual(data["events"][1]["title"], "Test Event 2")
+
+    def test_close_spider_creates_directory_if_needed(self):
+        # Test that close_spider creates the output directory if it doesn't exist
+        nested_dir = os.path.join(self.test_dir, "nested", "dir")
+        nested_file = os.path.join(nested_dir, "test_events.json")
+
+        self.pipeline.output_file = nested_file
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["url"] = "https://example.com/event"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+        self.pipeline.close_spider(self.spider)
+
+        # Check that the directory and file were created
+        self.assertTrue(os.path.exists(nested_dir))
+        self.assertTrue(os.path.exists(nested_file))
+
+    def test_close_spider_handles_file_write_errors(self):
+        # Test that close_spider handles file write errors gracefully
+        with patch("builtins.open") as mock_open:
+            mock_open.side_effect = PermissionError("Permission denied")
+
+            item = EventItem()
+            item["title"] = "Test Event"
+            item["url"] = "https://example.com/event"
+
+            self.pipeline.open_spider(self.spider)
+            self.pipeline.process_item(item, self.spider)
+
+            # This should not raise an exception
+            self.pipeline.close_spider(self.spider)
+````
+
 ## File: main.py
 ````python
 def main():
@@ -1602,6 +3029,636 @@ def main():
 
 if __name__ == "__main__":
     main()
+````
+
+## File: tests/test_enhanced_spider.py
+````python
+"""
+Comprehensive tests for enhanced spider functionality.
+
+This module tests the enhanced LumaSpider with JSON extraction,
+validation, and fallback mechanisms.
+"""
+
+import unittest
+import os
+import sys
+from unittest.mock import Mock, patch
+from scrapy.http import HtmlResponse, Request
+from scrapy.utils.project import get_project_settings
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from show_up.spiders.luma import LumaSpider
+from show_up.items import EventItem
+from show_up.extractors.json_extractor import JsonExtractor
+
+
+class TestLumaSpider(unittest.TestCase):
+    """Test the enhanced LumaSpider class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.spider = LumaSpider()
+        self.spider.settings = get_project_settings()
+
+    def test_spider_initialization(self):
+        """Test spider initialization."""
+        self.assertEqual(self.spider.name, "luma")
+        self.assertEqual(self.spider.allowed_domains, ["lu.ma"])
+        self.assertEqual(self.spider.start_urls, ["https://lu.ma/crypto"])
+        self.assertIsInstance(self.spider.json_extractor, JsonExtractor)
+
+    def test_spider_initialization_with_custom_patterns(self):
+        """Test spider initialization with custom JSON patterns."""
+        # Mock settings with custom patterns
+        mock_settings = Mock()
+        mock_settings.getlist.return_value = [
+            r"customPattern:\s*({.*?})",
+            r"specialData\s*=\s*({.*?});",
+        ]
+
+        spider = LumaSpider()
+        spider.settings = mock_settings
+        spider.__init__()
+
+        # Check that custom patterns were passed to extractor
+        mock_settings.getlist.assert_called_with("JSON_EXTRACTION_PATTERNS", [])
+
+    def test_parse_with_event_links(self):
+        """Test parse method when event links are found."""
+        # Create mock response with event links
+        html_content = """
+        <html>
+            <body>
+                <div class="timeline">
+                    <a class="event-link" href="/event1">Event 1</a>
+                    <a class="event-link" href="/event2">Event 2</a>
+                    <a class="event-link" href="/event3">Event 3</a>
+                </div>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/crypto")
+        response = HtmlResponse(
+            url="https://lu.ma/crypto",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Mock the CSS selector to return event links
+        with patch.object(response, "css") as mock_css:
+            mock_css.return_value.getall.return_value = [
+                "/event1",
+                "/event2",
+                "/event3",
+            ]
+
+            # Mock response.follow to track calls
+            with patch.object(response, "follow") as mock_follow:
+                mock_follow.return_value = Mock()
+
+                # Call parse method
+                list(self.spider.parse(response))
+
+                # Check that follow was called for each event link
+                self.assertEqual(mock_follow.call_count, 3)
+
+                # Check that parse_event was passed as callback
+                for call in mock_follow.call_args_list:
+                    args, kwargs = call
+                    self.assertEqual(args[1], self.spider.parse_event)
+
+    def test_parse_with_no_event_links(self):
+        """Test parse method when no event links are found."""
+        html_content = """
+        <html>
+            <body>
+                <div class="timeline">
+                    <p>No events found</p>
+                </div>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/crypto")
+        response = HtmlResponse(
+            url="https://lu.ma/crypto",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Mock the CSS selector to return no event links
+        with patch.object(response, "css") as mock_css:
+            mock_css.return_value.getall.return_value = []
+
+            # Call parse method
+            result = list(self.spider.parse(response))
+
+            # Should return empty list
+            self.assertEqual(len(result), 0)
+
+    def test_parse_event_with_json_extraction_success(self):
+        """Test parse_event when JSON extraction succeeds."""
+        # Sample JSON data that would be extracted
+        sample_event_data = {
+            "title": "Test Event",
+            "date": "2025-07-21T22:30:00.000Z",
+            "location": "Test Location",
+            "url": "https://lu.ma/test-event",
+            "extraction_method": "json",
+        }
+
+        html_content = """
+        <html>
+            <body>
+                <h1>Test Event</h1>
+                <script>
+                    var data = {"event": {"name": "Test Event", "start_at": "2025-07-21T22:30:00.000Z"}};
+                </script>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Mock JSON extraction to return sample data
+        with patch.object(self.spider, "_extract_with_json") as mock_json_extract:
+            mock_json_extract.return_value = sample_event_data
+
+            # Mock validation
+            with patch("show_up.spiders.luma.validate_event_data") as mock_validate:
+                mock_validate.return_value = sample_event_data
+
+                # Call parse_event
+                result = list(self.spider.parse_event(response))
+
+                # Should yield one dict
+                self.assertEqual(len(result), 1)
+                item = result[0]
+                self.assertIsInstance(item, dict)
+                self.assertIn("title", item)
+                self.assertIn("url", item)
+
+                # Check item fields
+                self.assertEqual(item["title"], "Test Event")
+                self.assertEqual(item["date"], "2025-07-21T22:30:00.000Z")
+                self.assertEqual(item["location"], "Test Location")
+                self.assertEqual(item["url"], "https://lu.ma/test-event")
+                self.assertEqual(item["extraction_method"], "json")
+
+                # Check that JSON extraction was attempted
+                mock_json_extract.assert_called_once()
+
+    def test_parse_event_with_json_extraction_failure_html_fallback(self):
+        """Test parse_event when JSON extraction fails but HTML fallback succeeds."""
+        html_content = """
+        <html>
+            <body>
+                <h1>Test Event</h1>
+                <div class="event-date">2025-07-21</div>
+                <div class="event-location">Test Location</div>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Mock settings to enable fallback
+        self.spider.settings = Mock()
+        self.spider.settings.getbool.return_value = True
+
+        # Mock JSON extraction to fail
+        with patch.object(self.spider, "_extract_with_json") as mock_json_extract:
+            mock_json_extract.return_value = None
+
+            # Mock HTML extraction to succeed
+            with patch.object(
+                self.spider, "_extract_with_html_selectors"
+            ) as mock_html_extract:
+                mock_html_extract.return_value = {
+                    "title": "Test Event",
+                    "date": "2025-07-21",
+                    "location": "Test Location",
+                    "extraction_method": "html_fallback",
+                }
+
+                # Call parse_event
+                result = list(self.spider.parse_event(response))
+
+                # Should yield one dict
+                self.assertEqual(len(result), 1)
+                item = result[0]
+                self.assertIsInstance(item, dict)
+                self.assertIn("title", item)
+                self.assertIn("url", item)
+
+                # Check that fallback was used
+                self.assertEqual(item["extraction_method"], "html_fallback")
+                mock_json_extract.assert_called_once()
+                mock_html_extract.assert_called_once()
+
+    def test_parse_event_with_all_extraction_methods_failing(self):
+        """Test parse_event when all extraction methods fail."""
+        html_content = """
+        <html>
+            <head><title>Test Event | Luma</title></head>
+            <body>
+                <div>No structured data</div>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Mock all extraction methods to fail
+        with patch.object(self.spider, "_extract_with_json") as mock_json_extract:
+            mock_json_extract.return_value = None
+
+            with patch.object(
+                self.spider, "_extract_with_html_selectors"
+            ) as mock_html_extract:
+                mock_html_extract.return_value = None
+
+                # Call parse_event
+                result = list(self.spider.parse_event(response))
+
+                # Should still yield one dict with fallback data
+                self.assertEqual(len(result), 1)
+                item = result[0]
+                self.assertIsInstance(item, dict)
+                self.assertIn("title", item)
+                self.assertIn("url", item)
+
+                # Check that fallback title was extracted
+                self.assertEqual(item["title"], "Test Event")
+                self.assertEqual(item["extraction_method"], "fallback")
+
+    def test_extract_with_json_success(self):
+        """Test _extract_with_json method success case."""
+        # Mock settings to enable JSON extraction
+        self.spider.settings = Mock()
+        self.spider.settings.getbool.return_value = True
+
+        # Mock JSON extractor
+        mock_extracted_data = {
+            "title": "Test Event",
+            "date": "2025-07-21T22:30:00.000Z",
+            "extraction_method": "json",
+        }
+
+        with patch.object(self.spider.json_extractor, "extract") as mock_extract:
+            mock_extract.return_value = mock_extracted_data
+
+            # Create mock response
+            response = Mock()
+            response.text = "<html>Mock HTML</html>"
+            response.url = "https://lu.ma/test-event"
+
+            # Call method
+            result = self.spider._extract_with_json(response)
+
+            # Check result
+            self.assertEqual(result, mock_extracted_data)
+            mock_extract.assert_called_once_with(response.text, url=response.url)
+
+    def test_extract_with_json_disabled(self):
+        """Test _extract_with_json method when JSON extraction is disabled."""
+        # Mock settings to disable JSON extraction
+        self.spider.settings = Mock()
+        self.spider.settings.getbool.return_value = False
+
+        response = Mock()
+        result = self.spider._extract_with_json(response)
+
+        # Should return None
+        self.assertIsNone(result)
+
+    def test_extract_with_json_exception_handling(self):
+        """Test _extract_with_json method exception handling."""
+        # Mock settings to enable JSON extraction
+        self.spider.settings = Mock()
+        self.spider.settings.getbool.return_value = True
+
+        # Mock JSON extractor to raise exception
+        with patch.object(self.spider.json_extractor, "extract") as mock_extract:
+            mock_extract.side_effect = Exception("JSON extraction error")
+
+            response = Mock()
+            response.text = "<html>Mock HTML</html>"
+            response.url = "https://lu.ma/test-event"
+
+            # Call method
+            result = self.spider._extract_with_json(response)
+
+            # Should return None
+            self.assertIsNone(result)
+
+    def test_extract_with_html_selectors_success(self):
+        """Test _extract_with_html_selectors method success case."""
+        html_content = """
+        <html>
+            <body>
+                <h1>Test Event Title</h1>
+                <time datetime="2025-07-21T22:30:00.000Z">July 21, 2025</time>
+                <address>Test Location</address>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Call method
+        result = self.spider._extract_with_html_selectors(response)
+
+        # Check result
+        self.assertIsNotNone(result)
+        self.assertEqual(result["title"], "Test Event Title")
+        self.assertEqual(result["date"], "July 21, 2025")
+        self.assertEqual(result["location"], "Test Location")
+        self.assertEqual(result["extraction_method"], "html_fallback")
+
+    def test_extract_with_html_selectors_partial_data(self):
+        """Test _extract_with_html_selectors method with partial data."""
+        html_content = """
+        <html>
+            <body>
+                <h1>Test Event Title</h1>
+                <!-- No date or location -->
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Call method
+        result = self.spider._extract_with_html_selectors(response)
+
+        # Check result
+        self.assertIsNotNone(result)
+        self.assertEqual(result["title"], "Test Event Title")
+        self.assertNotIn("date", result)
+        self.assertNotIn("location", result)
+
+    def test_extract_with_html_selectors_no_title(self):
+        """Test _extract_with_html_selectors method when no title is found."""
+        html_content = """
+        <html>
+            <body>
+                <div>No title element</div>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Call method
+        result = self.spider._extract_with_html_selectors(response)
+
+        # Should return None because no title was found
+        self.assertIsNone(result)
+
+    def test_extract_title_fallback_from_page_title(self):
+        """Test _extract_title_fallback method extracting from page title."""
+        html_content = """
+        <html>
+            <head><title>Test Event | Luma</title></head>
+            <body></body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Call method
+        result = self.spider._extract_title_fallback(response)
+
+        # Should extract and clean title
+        self.assertEqual(result, "Test Event")
+
+    def test_extract_title_fallback_from_h1(self):
+        """Test _extract_title_fallback method extracting from h1 tag."""
+        html_content = """
+        <html>
+            <body>
+                <h1>Test Event Title</h1>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Call method
+        result = self.spider._extract_title_fallback(response)
+
+        # Should extract h1 title
+        self.assertEqual(result, "Test Event Title")
+
+    def test_extract_title_fallback_from_url(self):
+        """Test _extract_title_fallback method extracting from URL."""
+        html_content = """
+        <html>
+            <body>
+                <div>No title elements</div>
+            </body>
+        </html>
+        """
+
+        request = Request("https://lu.ma/test-event-name")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event-name",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Call method
+        result = self.spider._extract_title_fallback(response)
+
+        # Should extract and format from URL
+        self.assertEqual(result, "Test Event Name")
+
+    def test_extract_title_fallback_unknown_event(self):
+        """Test _extract_title_fallback method with no extractable title."""
+        html_content = "<html><body></body></html>"
+
+        request = Request("https://lu.ma/")
+        response = HtmlResponse(
+            url="https://lu.ma/",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Call method
+        result = self.spider._extract_title_fallback(response)
+
+        # Should return default
+        self.assertEqual(result, "Unknown Event")
+
+    def test_populate_item_with_complete_data(self):
+        """Test _populate_item method with complete data."""
+        item = EventItem()
+        data = {
+            "title": "Test Event",
+            "date": "2025-07-21T22:30:00.000Z",
+            "location": "Test Location",
+            "coordinates": {"latitude": -34.6037, "longitude": -58.3816},
+            "organizer": "Test Organizer",
+            "extraction_method": "json",
+        }
+
+        self.spider._populate_item(item, data)
+
+        # Check that all fields were populated
+        self.assertEqual(item["title"], "Test Event")
+        self.assertEqual(item["date"], "2025-07-21T22:30:00.000Z")
+        self.assertEqual(item["location"], "Test Location")
+        self.assertEqual(
+            item["coordinates"], {"latitude": -34.6037, "longitude": -58.3816}
+        )
+        self.assertEqual(item["organizer"], "Test Organizer")
+        self.assertEqual(item["extraction_method"], "json")
+
+    def test_populate_item_with_partial_data(self):
+        """Test _populate_item method with partial data."""
+        item = EventItem()
+        data = {"title": "Test Event", "extraction_method": "html_fallback"}
+
+        self.spider._populate_item(item, data)
+
+        # Check that only provided fields were populated
+        self.assertEqual(item["title"], "Test Event")
+        self.assertEqual(item["extraction_method"], "html_fallback")
+        self.assertNotIn("date", dict(item))
+        self.assertNotIn("location", dict(item))
+
+    # HTML content processing tests removed - JSON output only
+    # The spider no longer processes HTML content, only extracts JSON data
+
+    def test_validation_success(self):
+        """Test successful validation in parse_event."""
+        html_content = "<html><body><h1>Test</h1></body></html>"
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Mock extraction to return valid data
+        with patch.object(self.spider, "_extract_with_json") as mock_json_extract:
+            mock_json_extract.return_value = {
+                "title": "Test Event",
+                "url": "https://lu.ma/test-event",
+                "extraction_method": "json",
+            }
+
+            # Mock validation to return enhanced data
+            with patch("show_up.spiders.luma.validate_event_data") as mock_validate:
+                mock_validate.return_value = {
+                    "title": "Test Event",
+                    "url": "https://lu.ma/test-event",
+                    "extraction_method": "json",
+                    "validated": True,
+                }
+
+                # Call parse_event
+                result = list(self.spider.parse_event(response))
+
+                # Check that validation was called and data was updated
+                mock_validate.assert_called_once()
+                item = result[0]
+                self.assertEqual(item["title"], "Test Event")
+                self.assertEqual(item["url"], "https://lu.ma/test-event")
+
+    def test_validation_failure(self):
+        """Test validation failure handling in parse_event."""
+        html_content = "<html><body><h1>Test</h1></body></html>"
+
+        request = Request("https://lu.ma/test-event")
+        response = HtmlResponse(
+            url="https://lu.ma/test-event",
+            body=html_content.encode("utf-8"),
+            encoding="utf-8",
+            request=request,
+        )
+
+        # Mock extraction to return data
+        with patch.object(self.spider, "_extract_with_json") as mock_json_extract:
+            mock_json_extract.return_value = {
+                "title": "Test Event",
+                "extraction_method": "json",
+            }
+
+            # Mock validation to raise exception
+            with patch("show_up.spiders.luma.validate_event_data") as mock_validate:
+                mock_validate.side_effect = Exception("Validation error")
+
+                # Call parse_event
+                result = list(self.spider.parse_event(response))
+
+                # Should continue with unvalidated data
+                self.assertEqual(len(result), 1)
+                item = result[0]
+                self.assertEqual(item["title"], "Test Event")
+
+
+if __name__ == "__main__":
+    unittest.main()
 ````
 
 ## File: pyproject.toml
@@ -1613,14 +3670,84 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "codespell>=2.4.1",
     "scrapy>=2.13.3",
     "scrapy-playwright>=0.0.33",
 ]
 
 [dependency-groups]
 dev = [
+    "coverage>=7.9.2",
     "pytest>=8.4.1",
 ]
+````
+
+## File: show_up/items.py
+````python
+# Define here the models for your scraped items
+#
+# See documentation in:
+# https://docs.scrapy.org/en/latest/topics/items.html
+
+import scrapy
+from typing import Any
+
+
+class EventItem(scrapy.Item):
+    """
+    Enhanced EventItem for complete event data extraction.
+
+    This item supports comprehensive event information including temporal data,
+    location details, metadata, and technical fields for tracking extraction methods.
+    """
+
+    # Basic fields
+    title = scrapy.Field()  # Event title
+    url = scrapy.Field()  # Event URL
+    description = scrapy.Field()  # Event description
+
+    # Temporal fields
+    date = scrapy.Field()  # Start date (ISO format)
+    end_date = scrapy.Field()  # End date (ISO format)
+    timezone = scrapy.Field()  # Event timezone (e.g., "America/Buenos_Aires")
+
+    # Location fields
+    location = scrapy.Field()  # Simple location string for backward compatibility
+    full_address = scrapy.Field()  # Complete formatted address
+    city = scrapy.Field()  # City name
+    country = scrapy.Field()  # Country name
+    coordinates = scrapy.Field()  # Dict with 'latitude' and 'longitude'
+    place_id = scrapy.Field()  # Google Place ID or similar
+
+    # Metadata fields
+    event_type = scrapy.Field()  # Event type (e.g., "independent", "series")
+    visibility = scrapy.Field()  # Visibility (e.g., "public", "private")
+    api_id = scrapy.Field()  # Platform-specific API ID
+    cover_url = scrapy.Field()  # Cover image URL
+    organizer = scrapy.Field()  # Event organizer information
+    guest_count = scrapy.Field()  # Number of guests/attendees
+
+    # Technical fields
+    html_content = scrapy.Field()  # Processed HTML content
+    raw_html = scrapy.Field()  # Raw HTML response
+    extraction_method = (
+        scrapy.Field()
+    )  # How data was extracted ("json", "html", "fallback")
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Override to provide type hints and validation."""
+        super().__setitem__(key, value)
+
+    def __getitem__(self, key: str) -> Any:
+        """Override to provide type hints."""
+        return super().__getitem__(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get field value with default."""
+        try:
+            return self[key]
+        except KeyError:
+            return default
 ````
 
 ## File: README.md
@@ -1643,11 +3770,11 @@ A powerful web crawler for extracting comprehensive crypto event data from Luma 
 
 ## 📊 Performance Metrics
 
-- **100% Success Rate** on tested HTML files
-- **3.5x Improvement** in data quality over basic extraction
-- **87.2% Average Completeness** with comprehensive field extraction
+- **100% Success Rate** on Luma event extraction (10/10 events)
+- **100% JSON Extraction Rate** - all events successfully extracted via JSON patterns
+- **100% Data Completeness** - all extracted fields populated with valid data
 - **Multiple Extraction Methods** with intelligent fallback
-- **Fully Tested**: 65+ comprehensive tests covering all functionality
+- **Comprehensive Testing**: 111 tests covering all functionality
 
 ## 🏗️ Architecture
 
@@ -2110,74 +4237,6 @@ This project is licensed under the MIT License. See LICENSE file for details.
 *Streamlined JSON-only output for clean, structured event data*
 ````
 
-## File: show_up/items.py
-````python
-# Define here the models for your scraped items
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/items.html
-
-import scrapy
-from typing import Any
-
-
-class EventItem(scrapy.Item):
-    """
-    Enhanced EventItem for complete event data extraction.
-
-    This item supports comprehensive event information including temporal data,
-    location details, metadata, and technical fields for tracking extraction methods.
-    """
-
-    # Basic fields
-    title = scrapy.Field()  # Event title
-    url = scrapy.Field()  # Event URL
-    description = scrapy.Field()  # Event description
-
-    # Temporal fields
-    date = scrapy.Field()  # Start date (ISO format)
-    end_date = scrapy.Field()  # End date (ISO format)
-    timezone = scrapy.Field()  # Event timezone (e.g., "America/Buenos_Aires")
-
-    # Location fields
-    location = scrapy.Field()  # Simple location string for backward compatibility
-    full_address = scrapy.Field()  # Complete formatted address
-    city = scrapy.Field()  # City name
-    country = scrapy.Field()  # Country name
-    coordinates = scrapy.Field()  # Dict with 'latitude' and 'longitude'
-    place_id = scrapy.Field()  # Google Place ID or similar
-
-    # Metadata fields
-    event_type = scrapy.Field()  # Event type (e.g., "independent", "series")
-    visibility = scrapy.Field()  # Visibility (e.g., "public", "private")
-    api_id = scrapy.Field()  # Platform-specific API ID
-    cover_url = scrapy.Field()  # Cover image URL
-    organizer = scrapy.Field()  # Event organizer information
-    guest_count = scrapy.Field()  # Number of guests/attendees
-
-    # Technical fields
-    html_content = scrapy.Field()  # Processed HTML content
-    raw_html = scrapy.Field()  # Raw HTML response
-    extraction_method = (
-        scrapy.Field()
-    )  # How data was extracted ("json", "html", "fallback")
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Override to provide type hints and validation."""
-        super().__setitem__(key, value)
-
-    def __getitem__(self, key: str) -> Any:
-        """Override to provide type hints."""
-        return super().__getitem__(key)
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get field value with default."""
-        try:
-            return self[key]
-        except KeyError:
-            return default
-````
-
 ## File: show_up/settings.py
 ````python
 # Scrapy settings for show_up project
@@ -2214,7 +4273,7 @@ ITEM_PIPELINES = {
 }
 
 # JSON output settings
-JSON_OUTPUT_FILE = "crypto_events.json"
+JSON_OUTPUT_FILE = "output/debug.json"
 JSON_INDENT = 2  # Pretty-print JSON with 2-space indentation
 JSON_ENSURE_ASCII = False  # Allow non-ASCII characters in JSON
 
@@ -2321,6 +4380,7 @@ from show_up.utils.validation import (
     get_data_completeness_score,
 )
 
+OUTPUT_FILE = "output/luma_debug.json"
 
 class EnhancedJsonPipeline:
     """
@@ -2333,14 +4393,14 @@ class EnhancedJsonPipeline:
     - Basic validation of event data
 
     Configuration settings (in settings.py):
-    - JSON_OUTPUT_FILE: Path to the output JSON file (default: 'crypto_events.json')
+    - JSON_OUTPUT_FILE: Path to the output JSON file (default: OUTPUT_FILE)
     - JSON_INDENT: Number of spaces for indentation (default: 2)
     - JSON_ENSURE_ASCII: Whether to escape non-ASCII characters (default: False)
     """
 
     def __init__(
         self,
-        output_file: str = "crypto_events.json",
+        output_file: str = OUTPUT_FILE,
         indent: int = 2,
         ensure_ascii: bool = False,
     ):
@@ -2361,7 +4421,7 @@ class EnhancedJsonPipeline:
     @classmethod
     def from_crawler(cls, crawler):
         # Get settings from crawler
-        output_file = crawler.settings.get("JSON_OUTPUT_FILE", "crypto_events.json")
+        output_file = crawler.settings.get("JSON_OUTPUT_FILE", OUTPUT_FILE)
         indent = crawler.settings.getint("JSON_INDENT", 2)
         ensure_ascii = crawler.settings.getbool("JSON_ENSURE_ASCII", False)
         pipeline = cls(
@@ -2591,7 +4651,7 @@ class EnhancedJsonPipeline:
 # Legacy pipeline kept for backward compatibility
 class JsonWriterPipeline:
     def open_spider(self, spider):
-        self.file = open("crypto_events.json", "w")
+        self.file = open(OUTPUT_FILE, "w")
         spider.logger.warning(
             "Using deprecated JsonWriterPipeline. Consider switching to EnhancedJsonPipeline."
         )

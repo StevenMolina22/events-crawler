@@ -80,7 +80,7 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
 
         pipeline = EnhancedJsonPipeline.from_crawler(mock_crawler)
 
-        self.assertEqual(pipeline.output_file, "output/debug.json")
+        self.assertEqual(pipeline.output_file, "output/luma_debug.json")
         self.assertEqual(pipeline.indent, 2)
         self.assertEqual(pipeline.ensure_ascii, False)
 

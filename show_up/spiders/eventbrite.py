@@ -16,13 +16,17 @@ class EventbriteSpider(scrapy.Spider):
         This function parses the Eventbrite search results page.
         It extracts the event data from the window.__SERVER_DATA__ variable using a regex.
         """
-        server_data_script = response.xpath('//script[contains(., "window.__SERVER_DATA__")]/text()').get()
+        server_data_script = response.xpath(
+            '//script[contains(., "window.__SERVER_DATA__")]/text()'
+        ).get()
         if not server_data_script:
             self.logger.error("Could not find window.__SERVER_DATA__ script.")
             return
 
         # Use regex to find the JSON object
-        match = re.search(r'window\.__SERVER_DATA__\s*=\s*(\{.*?\});', server_data_script)
+        match = re.search(
+            r"window\.__SERVER_DATA__\s*=\s*(\{.*?\});", server_data_script
+        )
         if not match:
             self.logger.error("Could not find server data JSON in script.")
             return
@@ -35,7 +39,7 @@ class EventbriteSpider(scrapy.Spider):
             self.logger.error(f"Failed to parse server data: {e}")
             return
 
-        events = server_data.get('search_data', {}).get('events', {})
+        events = server_data.get("search_data", {}).get("events", {})
         if not events:
             self.logger.warning("No events found in server data.")
             return
@@ -47,14 +51,14 @@ class EventbriteSpider(scrapy.Spider):
 
         for event in results:
             yield {
-                'title': event.get('name'),
-                'url': event.get('url'),
-                'summary': event.get('summary'),
-                'startDate': event.get('start_date'),
-                'endDate': event.get('end_date'),
-                'location': event.get('primary_venue', {}).get('name'),
-                'organizer': event.get('primary_organizer', {}).get('name'),
-                'tags': [tag.get('display_name') for tag in event.get('tags', [])],
-                'image': event.get('image', {}).get('url'),
-                'ticket_availability': event.get('ticket_availability', {}),
+                "title": event.get("name"),
+                "url": event.get("url"),
+                "summary": event.get("summary"),
+                "start_date": event.get("start_date"),
+                "end_date": event.get("end_date"),
+                "location": event.get("primary_venue", {}).get("name"),
+                "organizer": event.get("primary_organizer", {}).get("name"),
+                "tags": [tag.get("display_name") for tag in event.get("tags", [])],
+                "image": event.get("image", {}).get("url"),
+                "ticket_availability": event.get("ticket_availability", {}),
             }

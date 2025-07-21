@@ -57,7 +57,7 @@ show_up/
 
 - **Language**: Python 3.13+ with modern type hints (using `|` union syntax, built-in generics)
 - **Package Manager**: `uv` for managing Python dependencies and virtual environments
-- **Dependencies**: 
+- **Dependencies**:
   - Core: `scrapy>=2.13.3`, `scrapy-playwright>=0.0.33`
   - Development: `pytest>=8.4.1`, `coverage>=7.9.2`
 - **Testing**: `pytest` with comprehensive unit and integration tests (110+ tests)
@@ -106,7 +106,7 @@ show_up/
 
 #### Technical Implementation Completed:
 - **Data Model Enhancement**: Extended EventItem with 18+ comprehensive fields
-- **JSON Extraction Logic**: JsonExtractor with 8+ extraction patterns  
+- **JSON Extraction Logic**: JsonExtractor with 8+ extraction patterns
 - **Spider Enhancement**: LumaSpider with JSON-first extraction priority
 - **Pipeline Enhancement**: EnhancedJsonPipeline with validation and statistics
 - **Comprehensive Testing**: 110 tests covering all functionality
@@ -129,12 +129,12 @@ class EventItem(scrapy.Item):
     title = scrapy.Field()            # Event title
     url = scrapy.Field()              # Event URL
     description = scrapy.Field()      # Event description
-    
+
     # Temporal fields
     date = scrapy.Field()             # Start date (ISO format)
     end_date = scrapy.Field()         # End date (ISO format)
     timezone = scrapy.Field()         # Event timezone
-    
+
     # Location fields
     location = scrapy.Field()         # Simple location string
     full_address = scrapy.Field()     # Complete formatted address
@@ -142,7 +142,7 @@ class EventItem(scrapy.Item):
     country = scrapy.Field()          # Country name
     coordinates = scrapy.Field()      # Dict with 'latitude' and 'longitude'
     place_id = scrapy.Field()         # Google Place ID
-    
+
     # Metadata fields
     event_type = scrapy.Field()       # Event type (e.g., "independent")
     visibility = scrapy.Field()       # Visibility (e.g., "public")
@@ -150,7 +150,7 @@ class EventItem(scrapy.Item):
     cover_url = scrapy.Field()        # Cover image URL
     organizer = scrapy.Field()        # Event organizer information
     guest_count = scrapy.Field()      # Number of guests/attendees
-    
+
     # Technical fields (for debugging and quality tracking)
     extraction_method = scrapy.Field()  # How data was extracted
 ```
@@ -238,10 +238,7 @@ JSON_OUTPUT_FILE = "output/debug.json"
 ### Usage Examples:
 ```bash
 # Run the enhanced Luma spider
-scrapy crawl luma
-
-# Run with custom output file
-scrapy crawl luma -s JSON_OUTPUT_FILE="custom_events.json"
+scrapy crawl luma -o output/luma_events.json
 
 # Run tests
 pytest tests/ -v

@@ -7,6 +7,7 @@ from typing import Any
 
 HTML_FILE = "output/luma.html"
 
+
 class LumaSpider(scrapy.Spider):
     name = "luma"
     allowed_domains = ["lu.ma"]

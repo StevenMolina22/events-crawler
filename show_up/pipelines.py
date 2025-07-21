@@ -11,6 +11,7 @@ from show_up.utils.validation import (
 
 OUTPUT_FILE = "output/luma_debug.json"
 
+
 class EnhancedJsonPipeline:
     """
     Pipeline for storing scraped items in a structured JSON file with metadata.
