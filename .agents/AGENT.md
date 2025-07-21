@@ -11,6 +11,12 @@
 * Check `.agents/TASKS.md` before starting; if task not listed, add it with date and brief.
 * Adhere to `.agents/RULES.md` for **all coding constraints**.
 
+✅ **Codebase Discussion and Planning Mode**
+
+* If the query involves discussing the codebase (e.g., analyzing structure, explaining components) or planning a feature (e.g., proposing designs, outlining requirements), **do not generate or modify code**.
+* Provide analysis, explanations, or plans in text form only, referencing `.agents/PLANNING.md` or `.agents/CONTEXT.md` as needed.
+* If the query explicitly requests code implementation or modification (writing mode), confirm with the user before proceeding, especially if the request seems ambiguous.
+
 ✅ **Strict Focus**
 
 * **Work only on the requested task.**

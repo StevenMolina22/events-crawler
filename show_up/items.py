@@ -9,7 +9,7 @@ from typing import Any
 
 class EventItem(scrapy.Item):
     """
-    Enhanced EventItem for complete event data extraction.
+    EventItem for complete event data extraction.
 
     This item supports comprehensive event information including temporal data,
     location details, metadata, and technical fields for tracking extraction methods.

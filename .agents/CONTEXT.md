@@ -48,6 +48,7 @@ show_up/
   utils/
     __init__.py
     validation.py
+  db.py
   items.py
   middlewares.py
   pipelines.py
@@ -67,6 +68,50 @@ README.md
 
 # Files
 
+## File: show_up/db.py
+````python
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.server_api import ServerApi
+from dotenv import load_dotenv
+from pymongo import MongoClient
+import asyncio
+import os
+
+load_dotenv()
+
+URI = os.getenv("MONGODB_URI")
+assert URI is not None
+
+async def ping_server():
+    # Replace the placeholder with your Atlas connection string
+    # Set the Stable API version when creating a new client
+    client = AsyncIOMotorClient(URI, server_api=ServerApi('1'))
+
+    # Send a ping to confirm a successful connection
+    try:
+        await client.admin.command('ping')
+        print("Pinged your deployment. You successfully connected to MongoDB!")
+    except Exception as e:
+        print(e)
+
+def print_events():
+    """Use example"""
+    db = get_db()
+    coll_events = db["events"]
+
+    for event in coll_events.find():
+        print(event)
+
+def get_db():
+    client = MongoClient(URI)
+    db = client["showup_events"]
+    return db
+
+if __name__ == "__main__":
+    asyncio.run(ping_server())
+    print_events() # use example
+````
+
 ## File: tests/test_extraction.py
 ````python
 import pytest
@@ -74,17 +119,21 @@ import json
 from pathlib import Path
 from show_up.extractors.json_extractor import JsonExtractor
 
+
 @pytest.fixture
 def html_dir():
     return Path("output/html")
+
 
 @pytest.fixture
 def html_files(html_dir):
     return list(html_dir.glob("*.html")) if html_dir.exists() else []
 
+
 @pytest.fixture
 def json_extractor():
     return JsonExtractor()
+
 
 def test_compare_with_original_data():
     original_file = Path("output/debug.json")
@@ -1076,110 +1125,6 @@ def get_data_completeness_score(event_data: Dict[str, Any]) -> float:
     return achieved_weight / total_weight if total_weight > 0 else 0.0
 ````
 
-## File: show_up/middlewares.py
-````python
-# Define here the models for your spider middleware
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-
-from scrapy import signals
-
-# useful for handling different item types with a single interface
-from itemadapter import ItemAdapter
-
-
-class ShowUpSpiderMiddleware:
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the spider middleware does not modify the
-    # passed objects.
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        return s
-
-    def process_spider_input(self, response, spider):
-        # Called for each response that goes through the spider
-        # middleware and into the spider.
-
-        # Should return None or raise an exception.
-        return None
-
-    def process_spider_output(self, response, result, spider):
-        # Called with the results returned from the Spider, after
-        # it has processed the response.
-
-        # Must return an iterable of Request, or item objects.
-        for i in result:
-            yield i
-
-    def process_spider_exception(self, response, exception, spider):
-        # Called when a spider or process_spider_input() method
-        # (from other spider middleware) raises an exception.
-
-        # Should return either None or an iterable of Request or item objects.
-        pass
-
-    async def process_start(self, start):
-        # Called with an async iterator over the spider start() method or the
-        # matching method of an earlier spider middleware.
-        async for item_or_request in start:
-            yield item_or_request
-
-    def spider_opened(self, spider):
-        spider.logger.info("Spider opened: %s" % spider.name)
-
-
-class ShowUpDownloaderMiddleware:
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the downloader middleware does not modify the
-    # passed objects.
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        return s
-
-    def process_request(self, request, spider):
-        # Called for each request that goes through the downloader
-        # middleware.
-
-        # Must either:
-        # - return None: continue processing this request
-        # - or return a Response object
-        # - or return a Request object
-        # - or raise IgnoreRequest: process_exception() methods of
-        #   installed downloader middleware will be called
-        return None
-
-    def process_response(self, request, response, spider):
-        # Called with the response returned from the downloader.
-
-        # Must either;
-        # - return a Response object
-        # - return a Request object
-        # - or raise IgnoreRequest
-        return response
-
-    def process_exception(self, request, exception, spider):
-        # Called when a download handler or a process_request()
-        # (from other downloader middleware) raises an exception.
-
-        # Must either:
-        # - return None: continue processing this exception
-        # - return a Response object: stops process_exception() chain
-        # - return a Request object: stops process_exception() chain
-        pass
-
-    def spider_opened(self, spider):
-        spider.logger.info("Spider opened: %s" % spider.name)
-````
-
 ## File: tests/test_extractors.py
 ````python
 """
@@ -2147,6 +2092,411 @@ if __name__ == "__main__":
     unittest.main()
 ````
 
+## File: show_up/middlewares.py
+````python
+# Define here the models for your spider middleware
+#
+# See documentation in:
+# https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+
+from scrapy import signals
+
+# useful for handling different item types with a single interface
+# from itemadapter import ItemAdapter
+
+
+class ShowUpSpiderMiddleware:
+    # Not all methods need to be defined. If a method is not defined,
+    # scrapy acts as if the spider middleware does not modify the
+    # passed objects.
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        # This method is used by Scrapy to create your spiders.
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def process_spider_input(self, response, spider):
+        # Called for each response that goes through the spider
+        # middleware and into the spider.
+
+        # Should return None or raise an exception.
+        return None
+
+    def process_spider_output(self, response, result, spider):
+        # Called with the results returned from the Spider, after
+        # it has processed the response.
+
+        # Must return an iterable of Request, or item objects.
+        for i in result:
+            yield i
+
+    def process_spider_exception(self, response, exception, spider):
+        # Called when a spider or process_spider_input() method
+        # (from other spider middleware) raises an exception.
+
+        # Should return either None or an iterable of Request or item objects.
+        pass
+
+    async def process_start(self, start):
+        # Called with an async iterator over the spider start() method or the
+        # matching method of an earlier spider middleware.
+        async for item_or_request in start:
+            yield item_or_request
+
+    def spider_opened(self, spider):
+        spider.logger.info("Spider opened: %s" % spider.name)
+
+
+class ShowUpDownloaderMiddleware:
+    # Not all methods need to be defined. If a method is not defined,
+    # scrapy acts as if the downloader middleware does not modify the
+    # passed objects.
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        # This method is used by Scrapy to create your spiders.
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def process_request(self, request, spider):
+        # Called for each request that goes through the downloader
+        # middleware.
+
+        # Must either:
+        # - return None: continue processing this request
+        # - or return a Response object
+        # - or return a Request object
+        # - or raise IgnoreRequest: process_exception() methods of
+        #   installed downloader middleware will be called
+        return None
+
+    def process_response(self, request, response, spider):
+        # Called with the response returned from the downloader.
+
+        # Must either;
+        # - return a Response object
+        # - return a Request object
+        # - or raise IgnoreRequest
+        return response
+
+    def process_exception(self, request, exception, spider):
+        # Called when a download handler or a process_request()
+        # (from other downloader middleware) raises an exception.
+
+        # Must either:
+        # - return None: continue processing this exception
+        # - return a Response object: stops process_exception() chain
+        # - return a Request object: stops process_exception() chain
+        pass
+
+    def spider_opened(self, spider):
+        spider.logger.info("Spider opened: %s" % spider.name)
+````
+
+## File: tests/test_pipelines.py
+````python
+import unittest
+import tempfile
+import os
+import shutil
+import sys
+import json
+from unittest.mock import Mock, patch
+
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from show_up.pipelines import RawHtmlFilePipeline, JsonPipeline
+from show_up.items import EventItem
+
+
+class TestRawHtmlFilePipeline(unittest.TestCase):
+    def setUp(self):
+        # Create a temporary directory for testing
+        self.test_dir = tempfile.mkdtemp()
+        self.pipeline = RawHtmlFilePipeline()
+        self.pipeline.output_dir = self.test_dir
+
+        # Create a mock spider
+        self.spider = Mock()
+        self.spider.name = "test_spider"
+
+    def tearDown(self):
+        # Clean up the temporary directory
+        shutil.rmtree(self.test_dir)
+
+    def test_open_spider_creates_directory(self):
+        # Test that the pipeline creates the output directory
+        self.pipeline.open_spider(self.spider)
+        self.assertTrue(os.path.exists(self.test_dir))
+
+    def test_process_item_saves_raw_html(self):
+        # Arrange
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["raw_html"] = (
+            "<html><head><title>Test</title></head><body><h1>Test Event</h1></body></html>"
+        )
+
+        self.pipeline.open_spider(self.spider)
+
+        # Act
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Assert
+        expected_filename = "Test_Event_raw.html"
+        expected_filepath = os.path.join(self.test_dir, expected_filename)
+
+        self.assertTrue(os.path.exists(expected_filepath))
+
+        with open(expected_filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertEqual(content, item["raw_html"])
+        self.assertEqual(result, item)
+
+    def test_process_item_sanitizes_filename(self):
+        # Test that special characters in title are sanitized
+        item = EventItem()
+        item["title"] = "Test Event! @#$%^&*()+=[]{}|;:',.<>?/~`"
+        item["raw_html"] = "<html><body>Test content</body></html>"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Should sanitize to only alphanumeric, spaces, and hyphens
+        expected_filename = "Test_Event_raw.html"
+        expected_filepath = os.path.join(self.test_dir, expected_filename)
+
+        self.assertTrue(os.path.exists(expected_filepath))
+
+    def test_process_item_without_title_or_raw_html(self):
+        # Test that items without title or raw_html are handled gracefully
+        item = EventItem()
+        item["url"] = "https://example.com"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Should return the item unchanged and not create any files
+        self.assertEqual(result, item)
+        self.assertEqual(len(os.listdir(self.test_dir)), 0)
+
+    def test_process_item_with_empty_title(self):
+        # Test handling of empty title
+        item = EventItem()
+        item["title"] = ""
+        item["raw_html"] = "<html><body>Content</body></html>"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Should create a file with sanitized empty name
+        expected_filename = "_raw.html"
+        expected_filepath = os.path.join(self.test_dir, expected_filename)
+
+        self.assertTrue(os.path.exists(expected_filepath))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class TestEnhancedJsonPipeline(unittest.TestCase):
+    def setUp(self):
+        # Create a temporary directory and file for testing
+        self.test_dir = tempfile.mkdtemp()
+        self.test_file = os.path.join(self.test_dir, "test_events.json")
+        self.pipeline = JsonPipeline(output_file=self.test_file)
+
+        # Create a mock spider
+        self.spider = Mock()
+        self.spider.name = "test_spider"
+        self.spider.start_urls = ["https://example.com"]
+
+    def tearDown(self):
+        # Clean up the temporary directory
+        shutil.rmtree(self.test_dir)
+
+    def test_from_crawler(self):
+        # Test that the pipeline reads settings from crawler
+        mock_crawler = Mock()
+        mock_settings = {
+            "JSON_OUTPUT_FILE": "custom_output.json",
+            "JSON_INDENT": 4,
+            "JSON_ENSURE_ASCII": True,
+        }
+        mock_crawler.settings.get = lambda key, default: mock_settings.get(key, default)
+        mock_crawler.settings.getint = lambda key, default: mock_settings.get(
+            key, default
+        )
+        mock_crawler.settings.getbool = lambda key, default: mock_settings.get(
+            key, default
+        )
+
+        pipeline = JsonPipeline.from_crawler(mock_crawler)
+
+        self.assertEqual(pipeline.output_file, "custom_output.json")
+        self.assertEqual(pipeline.indent, 4)
+        self.assertEqual(pipeline.ensure_ascii, True)
+
+    def test_open_spider_initializes_metadata(self):
+        # Test that open_spider initializes metadata correctly
+        self.pipeline.open_spider(self.spider)
+
+        self.assertIn("spider_name", self.pipeline.metadata)
+        self.assertEqual(self.pipeline.metadata["spider_name"], "test_spider")
+        self.assertIn("start_time", self.pipeline.metadata)
+        self.assertIn("source", self.pipeline.metadata)
+        self.assertEqual(self.pipeline.metadata["source"], "https://example.com")
+
+    def test_process_item_adds_to_items_list(self):
+        # Test that process_item adds items to the items list
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["date"] = "2025-08-01"
+        item["location"] = "Test Location"
+        item["url"] = "https://example.com/event"
+        item["html_content"] = "<html><body>Test content</body></html>"
+        item["raw_html"] = "<html><body>Raw test content</body></html>"
+
+        self.pipeline.open_spider(self.spider)
+        result = self.pipeline.process_item(item, self.spider)
+
+        # Check that HTML fields are removed
+        self.assertEqual(len(self.pipeline.items), 1)
+        self.assertNotIn("html_content", self.pipeline.items[0])
+        self.assertNotIn("raw_html", self.pipeline.items[0])
+
+        # Check that other fields are preserved
+        self.assertEqual(self.pipeline.items[0]["title"], "Test Event")
+        self.assertEqual(self.pipeline.items[0]["date"], "2025-08-01T00:00:00")
+        self.assertEqual(self.pipeline.items[0]["location"], "Test Location")
+        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
+
+        # Check that the original item is returned unchanged
+        self.assertEqual(result, item)
+
+    def test_process_item_handles_missing_fields(self):
+        # Test that process_item handles missing fields
+        item = EventItem()
+        item["url"] = "https://example.com/event"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        # Check that missing fields are added with default values
+        self.assertEqual(len(self.pipeline.items), 1)
+        self.assertIn("title", self.pipeline.items[0])
+        self.assertIn("date", self.pipeline.items[0])
+        self.assertIn("location", self.pipeline.items[0])
+        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
+
+    def test_process_item_handles_non_serializable_values(self):
+        # Test that process_item handles non-serializable values
+        class NonSerializable:
+            def __str__(self):
+                return "Non-serializable object"
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["date"] = NonSerializable()
+        item["url"] = "https://example.com/event"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+
+        # Check that non-serializable values are converted to strings
+        self.assertEqual(len(self.pipeline.items), 1)
+        self.assertEqual(self.pipeline.items[0]["title"], "Test Event")
+        self.assertEqual(self.pipeline.items[0]["date"], "Non-serializable object")
+        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
+
+    def test_close_spider_writes_json_file(self):
+        # Test that close_spider writes a properly formatted JSON file
+        item1 = EventItem()
+        item1["title"] = "Test Event 1"
+        item1["date"] = "2025-08-01"
+        item1["url"] = "https://example.com/event1"
+
+        item2 = EventItem()
+        item2["title"] = "Test Event 2"
+        item2["date"] = "2025-08-02"
+        item2["url"] = "https://example.com/event2"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item1, self.spider)
+        self.pipeline.process_item(item2, self.spider)
+        self.pipeline.close_spider(self.spider)
+
+        # Check that the JSON file was created
+        self.assertTrue(os.path.exists(self.test_file))
+
+        # Check that the JSON file contains the expected structure
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        self.assertIn("metadata", data)
+        self.assertIn("events", data)
+        self.assertIn("end_time", data)
+        self.assertIn("event_count", data)
+
+        self.assertEqual(data["metadata"]["spider_name"], "test_spider")
+        self.assertEqual(len(data["events"]), 2)
+        self.assertEqual(data["event_count"], 2)
+
+        self.assertEqual(data["events"][0]["title"], "Test Event 1")
+        self.assertEqual(data["events"][1]["title"], "Test Event 2")
+
+    def test_close_spider_creates_directory_if_needed(self):
+        # Test that close_spider creates the output directory if it doesn't exist
+        nested_dir = os.path.join(self.test_dir, "nested", "dir")
+        nested_file = os.path.join(nested_dir, "test_events.json")
+
+        self.pipeline.output_file = nested_file
+
+        item = EventItem()
+        item["title"] = "Test Event"
+        item["url"] = "https://example.com/event"
+
+        self.pipeline.open_spider(self.spider)
+        self.pipeline.process_item(item, self.spider)
+        self.pipeline.close_spider(self.spider)
+
+        # Check that the directory and file were created
+        self.assertTrue(os.path.exists(nested_dir))
+        self.assertTrue(os.path.exists(nested_file))
+
+    def test_close_spider_handles_file_write_errors(self):
+        # Test that close_spider handles file write errors gracefully
+        with patch("builtins.open") as mock_open:
+            mock_open.side_effect = PermissionError("Permission denied")
+
+            item = EventItem()
+            item["title"] = "Test Event"
+            item["url"] = "https://example.com/event"
+
+            self.pipeline.open_spider(self.spider)
+            self.pipeline.process_item(item, self.spider)
+
+            # This should not raise an exception
+            self.pipeline.close_spider(self.spider)
+````
+
+## File: main.py
+````python
+def main():
+    print("Hello from show-up-crawler!")
+
+
+if __name__ == "__main__":
+    main()
+````
+
 ## File: show_up/spiders/eventbrite.py
 ````python
 import scrapy
@@ -2167,13 +2517,17 @@ class EventbriteSpider(scrapy.Spider):
         This function parses the Eventbrite search results page.
         It extracts the event data from the window.__SERVER_DATA__ variable using a regex.
         """
-        server_data_script = response.xpath('//script[contains(., "window.__SERVER_DATA__")]/text()').get()
+        server_data_script = response.xpath(
+            '//script[contains(., "window.__SERVER_DATA__")]/text()'
+        ).get()
         if not server_data_script:
             self.logger.error("Could not find window.__SERVER_DATA__ script.")
             return
 
         # Use regex to find the JSON object
-        match = re.search(r'window\.__SERVER_DATA__\s*=\s*(\{.*?\});', server_data_script)
+        match = re.search(
+            r"window\.__SERVER_DATA__\s*=\s*(\{.*?\});", server_data_script
+        )
         if not match:
             self.logger.error("Could not find server data JSON in script.")
             return
@@ -2186,7 +2540,7 @@ class EventbriteSpider(scrapy.Spider):
             self.logger.error(f"Failed to parse server data: {e}")
             return
 
-        events = server_data.get('search_data', {}).get('events', {})
+        events = server_data.get("search_data", {}).get("events", {})
         if not events:
             self.logger.warning("No events found in server data.")
             return
@@ -2198,16 +2552,16 @@ class EventbriteSpider(scrapy.Spider):
 
         for event in results:
             yield {
-                'title': event.get('name'),
-                'url': event.get('url'),
-                'summary': event.get('summary'),
-                'startDate': event.get('start_date'),
-                'endDate': event.get('end_date'),
-                'location': event.get('primary_venue', {}).get('name'),
-                'organizer': event.get('primary_organizer', {}).get('name'),
-                'tags': [tag.get('display_name') for tag in event.get('tags', [])],
-                'image': event.get('image', {}).get('url'),
-                'ticket_availability': event.get('ticket_availability', {}),
+                "title": event.get("name"),
+                "url": event.get("url"),
+                "summary": event.get("summary"),
+                "start_date": event.get("start_date"),
+                "end_date": event.get("end_date"),
+                "location": event.get("primary_venue", {}).get("name"),
+                "organizer": event.get("primary_organizer", {}).get("name"),
+                "tags": [tag.get("display_name") for tag in event.get("tags", [])],
+                "image": event.get("image", {}).get("url"),
+                "ticket_availability": event.get("ticket_availability", {}),
             }
 ````
 
@@ -2232,7 +2586,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from show_up.pipelines import EnhancedJsonPipeline
+from show_up.pipelines import JsonPipeline
 from show_up.items import EventItem
 
 
@@ -2246,7 +2600,7 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
         self.test_file = os.path.join(self.test_dir, "test_enhanced_events.json")
 
         # Create pipeline instance
-        self.pipeline = EnhancedJsonPipeline(output_file=self.test_file)
+        self.pipeline = JsonPipeline(output_file=self.test_file)
 
         # Create mock spider
         self.spider = Mock()
@@ -2279,7 +2633,7 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
             key, default
         )
 
-        pipeline = EnhancedJsonPipeline.from_crawler(mock_crawler)
+        pipeline = JsonPipeline.from_crawler(mock_crawler)
 
         self.assertEqual(pipeline.output_file, "custom_enhanced_output.json")
         self.assertEqual(pipeline.indent, 4)
@@ -2293,7 +2647,7 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
         mock_crawler.settings.getint = lambda key, default: default
         mock_crawler.settings.getbool = lambda key, default: default
 
-        pipeline = EnhancedJsonPipeline.from_crawler(mock_crawler)
+        pipeline = JsonPipeline.from_crawler(mock_crawler)
 
         self.assertEqual(pipeline.output_file, "output/luma_debug.json")
         self.assertEqual(pipeline.indent, 2)
@@ -2702,7 +3056,7 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
     def test_json_indent_and_ascii_settings(self):
         """Test that JSON formatting settings are applied correctly."""
         # Create pipeline with specific formatting settings
-        pipeline = EnhancedJsonPipeline(
+        pipeline = JsonPipeline(
             output_file=self.test_file, indent=4, ensure_ascii=True
         )
 
@@ -2728,307 +3082,6 @@ class TestEnhancedJsonPipeline(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-````
-
-## File: tests/test_pipelines.py
-````python
-import unittest
-import tempfile
-import os
-import shutil
-import sys
-import json
-from unittest.mock import Mock, patch
-
-
-# Add the project root to the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from show_up.pipelines import RawHtmlFilePipeline, EnhancedJsonPipeline
-from show_up.items import EventItem
-
-
-class TestRawHtmlFilePipeline(unittest.TestCase):
-    def setUp(self):
-        # Create a temporary directory for testing
-        self.test_dir = tempfile.mkdtemp()
-        self.pipeline = RawHtmlFilePipeline()
-        self.pipeline.output_dir = self.test_dir
-
-        # Create a mock spider
-        self.spider = Mock()
-        self.spider.name = "test_spider"
-
-    def tearDown(self):
-        # Clean up the temporary directory
-        shutil.rmtree(self.test_dir)
-
-    def test_open_spider_creates_directory(self):
-        # Test that the pipeline creates the output directory
-        self.pipeline.open_spider(self.spider)
-        self.assertTrue(os.path.exists(self.test_dir))
-
-    def test_process_item_saves_raw_html(self):
-        # Arrange
-        item = EventItem()
-        item["title"] = "Test Event"
-        item["raw_html"] = (
-            "<html><head><title>Test</title></head><body><h1>Test Event</h1></body></html>"
-        )
-
-        self.pipeline.open_spider(self.spider)
-
-        # Act
-        result = self.pipeline.process_item(item, self.spider)
-
-        # Assert
-        expected_filename = "Test_Event_raw.html"
-        expected_filepath = os.path.join(self.test_dir, expected_filename)
-
-        self.assertTrue(os.path.exists(expected_filepath))
-
-        with open(expected_filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        self.assertEqual(content, item["raw_html"])
-        self.assertEqual(result, item)
-
-    def test_process_item_sanitizes_filename(self):
-        # Test that special characters in title are sanitized
-        item = EventItem()
-        item["title"] = "Test Event! @#$%^&*()+=[]{}|;:',.<>?/~`"
-        item["raw_html"] = "<html><body>Test content</body></html>"
-
-        self.pipeline.open_spider(self.spider)
-        result = self.pipeline.process_item(item, self.spider)
-
-        # Should sanitize to only alphanumeric, spaces, and hyphens
-        expected_filename = "Test_Event_raw.html"
-        expected_filepath = os.path.join(self.test_dir, expected_filename)
-
-        self.assertTrue(os.path.exists(expected_filepath))
-
-    def test_process_item_without_title_or_raw_html(self):
-        # Test that items without title or raw_html are handled gracefully
-        item = EventItem()
-        item["url"] = "https://example.com"
-
-        self.pipeline.open_spider(self.spider)
-        result = self.pipeline.process_item(item, self.spider)
-
-        # Should return the item unchanged and not create any files
-        self.assertEqual(result, item)
-        self.assertEqual(len(os.listdir(self.test_dir)), 0)
-
-    def test_process_item_with_empty_title(self):
-        # Test handling of empty title
-        item = EventItem()
-        item["title"] = ""
-        item["raw_html"] = "<html><body>Content</body></html>"
-
-        self.pipeline.open_spider(self.spider)
-        result = self.pipeline.process_item(item, self.spider)
-
-        # Should create a file with sanitized empty name
-        expected_filename = "_raw.html"
-        expected_filepath = os.path.join(self.test_dir, expected_filename)
-
-        self.assertTrue(os.path.exists(expected_filepath))
-
-
-if __name__ == "__main__":
-    unittest.main()
-
-
-class TestEnhancedJsonPipeline(unittest.TestCase):
-    def setUp(self):
-        # Create a temporary directory and file for testing
-        self.test_dir = tempfile.mkdtemp()
-        self.test_file = os.path.join(self.test_dir, "test_events.json")
-        self.pipeline = EnhancedJsonPipeline(output_file=self.test_file)
-
-        # Create a mock spider
-        self.spider = Mock()
-        self.spider.name = "test_spider"
-        self.spider.start_urls = ["https://example.com"]
-
-    def tearDown(self):
-        # Clean up the temporary directory
-        shutil.rmtree(self.test_dir)
-
-    def test_from_crawler(self):
-        # Test that the pipeline reads settings from crawler
-        mock_crawler = Mock()
-        mock_settings = {
-            "JSON_OUTPUT_FILE": "custom_output.json",
-            "JSON_INDENT": 4,
-            "JSON_ENSURE_ASCII": True,
-        }
-        mock_crawler.settings.get = lambda key, default: mock_settings.get(key, default)
-        mock_crawler.settings.getint = lambda key, default: mock_settings.get(
-            key, default
-        )
-        mock_crawler.settings.getbool = lambda key, default: mock_settings.get(
-            key, default
-        )
-
-        pipeline = EnhancedJsonPipeline.from_crawler(mock_crawler)
-
-        self.assertEqual(pipeline.output_file, "custom_output.json")
-        self.assertEqual(pipeline.indent, 4)
-        self.assertEqual(pipeline.ensure_ascii, True)
-
-    def test_open_spider_initializes_metadata(self):
-        # Test that open_spider initializes metadata correctly
-        self.pipeline.open_spider(self.spider)
-
-        self.assertIn("spider_name", self.pipeline.metadata)
-        self.assertEqual(self.pipeline.metadata["spider_name"], "test_spider")
-        self.assertIn("start_time", self.pipeline.metadata)
-        self.assertIn("source", self.pipeline.metadata)
-        self.assertEqual(self.pipeline.metadata["source"], "https://example.com")
-
-    def test_process_item_adds_to_items_list(self):
-        # Test that process_item adds items to the items list
-        item = EventItem()
-        item["title"] = "Test Event"
-        item["date"] = "2025-08-01"
-        item["location"] = "Test Location"
-        item["url"] = "https://example.com/event"
-        item["html_content"] = "<html><body>Test content</body></html>"
-        item["raw_html"] = "<html><body>Raw test content</body></html>"
-
-        self.pipeline.open_spider(self.spider)
-        result = self.pipeline.process_item(item, self.spider)
-
-        # Check that HTML fields are removed
-        self.assertEqual(len(self.pipeline.items), 1)
-        self.assertNotIn("html_content", self.pipeline.items[0])
-        self.assertNotIn("raw_html", self.pipeline.items[0])
-
-        # Check that other fields are preserved
-        self.assertEqual(self.pipeline.items[0]["title"], "Test Event")
-        self.assertEqual(self.pipeline.items[0]["date"], "2025-08-01T00:00:00")
-        self.assertEqual(self.pipeline.items[0]["location"], "Test Location")
-        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
-
-        # Check that the original item is returned unchanged
-        self.assertEqual(result, item)
-
-    def test_process_item_handles_missing_fields(self):
-        # Test that process_item handles missing fields
-        item = EventItem()
-        item["url"] = "https://example.com/event"
-
-        self.pipeline.open_spider(self.spider)
-        self.pipeline.process_item(item, self.spider)
-
-        # Check that missing fields are added with default values
-        self.assertEqual(len(self.pipeline.items), 1)
-        self.assertIn("title", self.pipeline.items[0])
-        self.assertIn("date", self.pipeline.items[0])
-        self.assertIn("location", self.pipeline.items[0])
-        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
-
-    def test_process_item_handles_non_serializable_values(self):
-        # Test that process_item handles non-serializable values
-        class NonSerializable:
-            def __str__(self):
-                return "Non-serializable object"
-
-        item = EventItem()
-        item["title"] = "Test Event"
-        item["date"] = NonSerializable()
-        item["url"] = "https://example.com/event"
-
-        self.pipeline.open_spider(self.spider)
-        self.pipeline.process_item(item, self.spider)
-
-        # Check that non-serializable values are converted to strings
-        self.assertEqual(len(self.pipeline.items), 1)
-        self.assertEqual(self.pipeline.items[0]["title"], "Test Event")
-        self.assertEqual(self.pipeline.items[0]["date"], "Non-serializable object")
-        self.assertEqual(self.pipeline.items[0]["url"], "https://example.com/event")
-
-    def test_close_spider_writes_json_file(self):
-        # Test that close_spider writes a properly formatted JSON file
-        item1 = EventItem()
-        item1["title"] = "Test Event 1"
-        item1["date"] = "2025-08-01"
-        item1["url"] = "https://example.com/event1"
-
-        item2 = EventItem()
-        item2["title"] = "Test Event 2"
-        item2["date"] = "2025-08-02"
-        item2["url"] = "https://example.com/event2"
-
-        self.pipeline.open_spider(self.spider)
-        self.pipeline.process_item(item1, self.spider)
-        self.pipeline.process_item(item2, self.spider)
-        self.pipeline.close_spider(self.spider)
-
-        # Check that the JSON file was created
-        self.assertTrue(os.path.exists(self.test_file))
-
-        # Check that the JSON file contains the expected structure
-        with open(self.test_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        self.assertIn("metadata", data)
-        self.assertIn("events", data)
-        self.assertIn("end_time", data)
-        self.assertIn("event_count", data)
-
-        self.assertEqual(data["metadata"]["spider_name"], "test_spider")
-        self.assertEqual(len(data["events"]), 2)
-        self.assertEqual(data["event_count"], 2)
-
-        self.assertEqual(data["events"][0]["title"], "Test Event 1")
-        self.assertEqual(data["events"][1]["title"], "Test Event 2")
-
-    def test_close_spider_creates_directory_if_needed(self):
-        # Test that close_spider creates the output directory if it doesn't exist
-        nested_dir = os.path.join(self.test_dir, "nested", "dir")
-        nested_file = os.path.join(nested_dir, "test_events.json")
-
-        self.pipeline.output_file = nested_file
-
-        item = EventItem()
-        item["title"] = "Test Event"
-        item["url"] = "https://example.com/event"
-
-        self.pipeline.open_spider(self.spider)
-        self.pipeline.process_item(item, self.spider)
-        self.pipeline.close_spider(self.spider)
-
-        # Check that the directory and file were created
-        self.assertTrue(os.path.exists(nested_dir))
-        self.assertTrue(os.path.exists(nested_file))
-
-    def test_close_spider_handles_file_write_errors(self):
-        # Test that close_spider handles file write errors gracefully
-        with patch("builtins.open") as mock_open:
-            mock_open.side_effect = PermissionError("Permission denied")
-
-            item = EventItem()
-            item["title"] = "Test Event"
-            item["url"] = "https://example.com/event"
-
-            self.pipeline.open_spider(self.spider)
-            self.pipeline.process_item(item, self.spider)
-
-            # This should not raise an exception
-            self.pipeline.close_spider(self.spider)
-````
-
-## File: main.py
-````python
-def main():
-    print("Hello from show-up-crawler!")
-
-
-if __name__ == "__main__":
-    main()
 ````
 
 ## File: tests/test_enhanced_spider.py
@@ -3671,6 +3724,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "codespell>=2.4.1",
+    "dotenv>=0.9.9",
+    "motor>=3.7.1",
+    "pymongo[srv]>=4.13.2",
     "scrapy>=2.13.3",
     "scrapy-playwright>=0.0.33",
 ]
@@ -3695,7 +3751,7 @@ from typing import Any
 
 class EventItem(scrapy.Item):
     """
-    Enhanced EventItem for complete event data extraction.
+    EventItem for complete event data extraction.
 
     This item supports comprehensive event information including temporal data,
     location details, metadata, and technical fields for tracking extraction methods.
@@ -4265,11 +4321,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    # "show_up.pipelines.JsonWriterPipeline": 300,  # Legacy JSON pipeline (commented out)
-    "show_up.pipelines.EnhancedJsonPipeline": 300,  # Enhanced JSON pipeline with structured output
-    # HTML output pipelines removed - JSON output only
-    # "show_up.pipelines.HtmlFilePipeline": 301,
-    # "show_up.pipelines.RawHtmlFilePipeline": 302,
+    "show_up.pipelines.JsonPipeline": 300,  # JSON pipeline with structured output
 }
 
 # JSON output settings
@@ -4382,7 +4434,8 @@ from show_up.utils.validation import (
 
 OUTPUT_FILE = "output/luma_debug.json"
 
-class EnhancedJsonPipeline:
+
+class JsonPipeline:
     """
     Pipeline for storing scraped items in a structured JSON file with metadata.
 
@@ -4648,27 +4701,6 @@ class EnhancedJsonPipeline:
         return item
 
 
-# Legacy pipeline kept for backward compatibility
-class JsonWriterPipeline:
-    def open_spider(self, spider):
-        self.file = open(OUTPUT_FILE, "w")
-        spider.logger.warning(
-            "Using deprecated JsonWriterPipeline. Consider switching to EnhancedJsonPipeline."
-        )
-
-    def close_spider(self, spider):
-        self.file.close()
-
-    def process_item(self, item, spider):
-        # Create a copy of the item and remove the HTML fields
-        item_copy = dict(item)
-        item_copy.pop("html_content", None)
-        item_copy.pop("raw_html", None)
-        line = json.dumps(item_copy) + "\n"
-        self.file.write(line)
-        return item
-
-
 class HtmlFilePipeline:
     output_dir = "output/html"
 
@@ -4722,6 +4754,7 @@ from scrapy_playwright.page import PageMethod
 from typing import Any
 
 HTML_FILE = "output/luma.html"
+
 
 class LumaSpider(scrapy.Spider):
     name = "luma"

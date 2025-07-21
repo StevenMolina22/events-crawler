@@ -24,11 +24,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    # "show_up.pipelines.JsonWriterPipeline": 300,  # Legacy JSON pipeline (commented out)
-    "show_up.pipelines.EnhancedJsonPipeline": 300,  # Enhanced JSON pipeline with structured output
-    # HTML output pipelines removed - JSON output only
-    # "show_up.pipelines.HtmlFilePipeline": 301,
-    # "show_up.pipelines.RawHtmlFilePipeline": 302,
+    "show_up.pipelines.JsonPipeline": 300,  # JSON pipeline with structured output
 }
 
 # JSON output settings
