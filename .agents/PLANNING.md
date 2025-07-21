@@ -25,12 +25,12 @@ The project is built using Python 3.13+ with the Scrapy framework and Playwright
   - **Primary**: JSON data extraction from embedded structured data (8+ patterns)
   - **Fallback**: HTML parsing using CSS selectors
   - **Components**: Modular extractors with base interface for extensibility
-- **Data Storage**: Structured JSON files with metadata and extraction statistics
-- **Configuration**: Comprehensive settings in `scrapy.cfg` and Scrapy settings
+- **Data Storage**: Simple JSON files with clean event data
+- **Configuration**: Minimal settings in `scrapy.cfg` and Scrapy settings
 
 ### Current Data Flow Architecture:
 ```
-Scrapy Spider → Playwright → JsonExtractor → Enhanced EventItem → EnhancedJsonPipeline → Structured JSON Output
+Scrapy Spider → Playwright → JsonExtractor → EventItem → JsonPipeline → Clean JSON Output
 ```
 
 ### Implemented Component Structure:
@@ -48,7 +48,7 @@ show_up/
 │   ├── luma.py         # Enhanced Luma spider with JSON extraction
 │   └── eventbrite.py   # Eventbrite spider
 ├── items.py            # Enhanced EventItem with 18+ fields
-├── pipelines.py        # EnhancedJsonPipeline with validation
+├── pipelines.py        # Simple JsonPipeline for clean output
 ├── middlewares.py      # Scrapy middlewares
 └── settings.py         # Production configuration
 ```
@@ -60,7 +60,7 @@ show_up/
 - **Dependencies**:
   - Core: `scrapy>=2.13.3`, `scrapy-playwright>=0.0.33`
   - Development: `pytest>=8.4.1`, `coverage>=7.9.2`
-- **Testing**: `pytest` with comprehensive unit and integration tests (110+ tests)
+- **Testing**: `pytest` with comprehensive unit and integration tests (86 tests)
 - **Code Quality**: Type hints, docstrings, and modular design patterns
 - **Modularity**: Scrapy conventions with enhanced extractor and validation modules
 
@@ -80,7 +80,7 @@ show_up/
 - **Python**: Requires Python 3.13+ for modern type hints
 
 ### Testing Guidelines:
-- Maintain 110+ comprehensive tests covering all functionality
+- Maintain 86+ comprehensive tests covering all functionality
 - Unit tests for all extractors, validators, and utilities
 - Integration tests for end-to-end extraction workflows
 - Test coverage for error handling and edge cases
@@ -224,39 +224,38 @@ JSON_PATTERNS = [
 ```python
 # show_up/settings.py
 ITEM_PIPELINES = {
-    "show_up.pipelines.EnhancedJsonPipeline": 300,  # JSON output with metadata
+    "show_up.pipelines.JsonPipeline": 300,  # Simple JSON output
 }
 
 # JSON extraction settings
 JSON_EXTRACTION_ENABLED = True
 JSON_EXTRACTION_FALLBACK = True
-ENHANCED_JSON_VALIDATION = True
-ENHANCED_JSON_INCLUDE_METADATA = True
 JSON_OUTPUT_FILE = "output/debug.json"
 ```
 
 ### Usage Examples:
 ```bash
-# Run the enhanced Luma spider
+# Run the Luma spider
 scrapy crawl luma -o output/luma_events.json
 
 # Run tests
-pytest tests/ -v
-
-# Integration testing on HTML files
-python test_enhanced_extraction.py
+uv run pytest tests/ -v
 ```
 
 ### Output Structure:
 ```json
 {
-  "metadata": {
-    "spider_name": "luma",
-    "start_time": "2025-01-16T...",
-    "extraction_statistics": { ... }
-  },
-  "events": [ ... ],
-  "event_count": 10
+  "events": [
+    {
+      "title": "Event Title",
+      "url": "https://lu.ma/event-url",
+      "date": "2025-07-21T22:30:00.000Z",
+      "location": "Event Location",
+      "extraction_method": "json"
+    }
+  ],
+  "count": 10,
+  "scraped_at": "2025-07-21T20:07:51.902021"
 }
 ```
 

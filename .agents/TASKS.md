@@ -117,7 +117,7 @@ This file tracks the tasks for the Show Up Crawler project.
 
 ### ✅ Complete Implementation (2025-01-16)
 - **Enhanced JSON Extraction**: 100% success rate with 8+ extraction patterns
-- **Comprehensive Testing**: 110 tests covering all functionality 
+- **Comprehensive Testing**: 110 tests covering all functionality
 - **Data Quality**: 87.2% average completeness (3.5x improvement)
 - **Production Ready**: Full validation, error handling, and statistics
 - **JSON-Only Output**: Streamlined pipeline for structured data only
@@ -146,3 +146,6 @@ This file tracks the tasks for the Show Up Crawler project.
   - **[DONE]** Remove default value assignment for missing fields
   - **[DONE]** Streamline to simple JSON storage without data manipulation
   - **[DONE]** Maintain only essential functionality: collect items and save as JSON
+  - **[DONE]** Update simplified tests to match new pipeline behavior
+  - **[DONE]** Verify all 86 tests pass with simplified implementation
+  - **[DONE]** Update .agents documentation to reflect simplified architecture

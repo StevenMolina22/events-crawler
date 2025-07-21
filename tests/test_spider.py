@@ -363,6 +363,7 @@ class TestLumaSpider(unittest.TestCase):
 
         # Call method
         result = self.spider._extract_with_html_selectors(response)
+        assert result
 
         # Check result
         self.assertIsNotNone(result)
@@ -392,9 +393,9 @@ class TestLumaSpider(unittest.TestCase):
 
         # Call method
         result = self.spider._extract_with_html_selectors(response)
+        assert result
 
         # Check result
-        self.assertIsNotNone(result)
         self.assertEqual(result["title"], "Test Event Title")
         self.assertNotIn("date", result)
         self.assertNotIn("location", result)

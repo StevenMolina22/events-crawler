@@ -20,20 +20,20 @@ A powerful web crawler for extracting comprehensive crypto event data from Luma 
 - **100% JSON Extraction Rate** - all events successfully extracted via JSON patterns
 - **100% Data Completeness** - all extracted fields populated with valid data
 - **Multiple Extraction Methods** with intelligent fallback
-- **Comprehensive Testing**: 111 tests covering all functionality
+- **Comprehensive Testing**: 86 tests covering all functionality
 
 ## 🏗️ Architecture
 
 ```
-Scrapy Spider → Playwright → JsonExtractor → Enhanced EventItem → Enhanced JSON Pipeline → Structured JSON Output
+Scrapy Spider → Playwright → JsonExtractor → EventItem → Simple JSON Pipeline → Clean JSON Output
 ```
 
 ### Core Components
 
 - **JsonExtractor**: Advanced JSON pattern matching and extraction with 8+ patterns
-- **Enhanced EventItem**: Comprehensive data model with 15+ fields
-- **Enhanced Pipelines**: Data validation, cleaning, and statistics tracking
-- **Validation Utils**: Data quality assurance and normalization
+- **EventItem**: Comprehensive data model with 18+ fields
+- **Simple JsonPipeline**: Direct JSON storage without data manipulation
+- **Validation Utils**: Optional data quality assurance and normalization
 - **Multi-Method Extraction**: JSON → HTML → Fallback extraction chain
 - **Comprehensive Testing**: Unit and integration tests for all components
 
@@ -86,37 +86,14 @@ uv run pytest tests/test_pipelines.py -v
 
 ### Output Format
 
-The crawler generates structured JSON data with comprehensive event information and metadata:
+The crawler generates clean JSON data with comprehensive event information:
 
 ```json
 {
-  "metadata": {
-    "spider_name": "luma",
-    "start_time": "2025-01-16T...",
-    "source": "https://lu.ma/crypto",
-    "extraction_config": {
-      "json_extraction_enabled": true,
-      "validation_enabled": true,
-      "include_metadata": true,
-      "extraction_stats": true
-    },
-    "extraction_statistics": {
-      "total_processed": 8,
-      "json_extraction": 8,
-      "html_extraction": 0,
-      "fallback_extraction": 0,
-      "validation_errors": 0,
-      "high_quality_events": 7,
-      "success_rates": {
-        "json_extraction_rate": 1.0,
-        "validation_success_rate": 1.0,
-        "high_quality_rate": 0.875
-      }
-    }
-  },
   "events": [
     {
       "title": "21MeetUp | JULIO 🧡🚀",
+      "url": "https://lu.ma/k9izpesk",
       "date": "2025-07-21T22:30:00.000Z",
       "end_date": "2025-07-22T01:00:00.000Z",
       "timezone": "America/Buenos_Aires",
@@ -128,23 +105,16 @@ The crawler generates structured JSON data with comprehensive event information 
         "latitude": -34.5788554,
         "longitude": -58.44275679999999
       },
+      "place_id": "ChIJ_VCXXm-1vJURJHX-OCx4Pc8",
       "event_type": "independent",
       "visibility": "public",
-      "organizer": "Event Organizer Name",
-      "url": "https://lu.ma/k9izpesk",
-      "cover_url": "https://images.lumacdn.com/event-covers/...",
       "api_id": "evt-yKMLCEcEELikdzY",
-      "guest_count": 42,
-      "place_id": "ChIJ_test123",
-      "_metadata": {
-        "extraction_method": "json",
-        "completeness_score": 0.90,
-        "processed_at": "2025-01-16T..."
-      }
+      "cover_url": "https://images.lumacdn.com/event-covers/2z/ac80bc38-0dd7-4e58-90e8-5abd82c6023e.png",
+      "extraction_method": "json"
     }
   ],
-  "end_time": "2025-01-16T...",
-  "event_count": 8
+  "count": 10,
+  "scraped_at": "2025-07-21T17:07:51.902021"
 }
 ```
 
@@ -174,8 +144,8 @@ uv run pytest -v --tb=short
 
 - **JSON Extraction**: 34 tests covering all patterns and edge cases
 - **Spider Functionality**: 24 tests for all extraction methods
-- **Pipeline Processing**: 17 tests for data validation and statistics
-- **Validation Utils**: 15+ tests for data cleaning and validation
+- **Pipeline Processing**: 5 tests for simplified JSON storage
+- **Validation Utils**: 23 tests for data cleaning and validation
 - **Integration**: Real-world HTML file testing
 
 ## 📈 Data Quality Metrics
@@ -347,9 +317,9 @@ This project is licensed under the MIT License. See LICENSE file for details.
 ## 📝 Implementation Status
 
 ✅ **Complete**: Enhanced JSON extraction system with 100% success rate
-✅ **Complete**: Comprehensive test coverage (110+ tests)
+✅ **Complete**: Comprehensive test coverage (86 tests)
 ✅ **Complete**: Data validation and quality scoring
-✅ **Complete**: Production-ready pipelines with statistics
+✅ **Complete**: Simplified JSON pipeline for clean output
 ✅ **Complete**: Integration testing with real HTML files
 ✅ **Complete**: Documentation and usage examples
 ✅ **Complete**: JSON-only output

@@ -8,4 +8,5 @@ This document outlines the rules and guidelines for the Show Up Crawler project.
 4.  **Use a proper User-Agent**: The crawler should identify itself with a clear User-Agent string (e.g., `ShowUpCrawler/1.0`).
 5.  **Handle errors gracefully**: The crawler should be resilient to errors and handle them gracefully (e.g., by logging them and continuing).
 6.  **Write clean and maintainable code**: Follow the code style and conventions defined in `.agents/PLANNING.md`.
-7.  **Keep documentation up-to-date**: Ensure that the `README.md` and `.agents` files are always in sync with the codebase.
+7.  **Keep pipelines simple**: Avoid unnecessary complexity in data processing pipelines. Don't add defaults or manipulate data unless explicitly required.
+8.  **Keep documentation up-to-date**: Ensure that the `README.md` and `.agents` files are always in sync with the codebase.
