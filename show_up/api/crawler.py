@@ -36,7 +36,9 @@ def _generate_job_id(spider_name: str) -> str:
     return f"crawl_{timestamp}_{spider_name}_{unique_id}"
 
 
-async def _run_spider_async(spider_name: str, job_id: str, settings: dict[str, Any]) -> None:
+async def _run_spider_async(
+    spider_name: str, job_id: str, settings: dict[str, Any]
+) -> None:
     """Run a spider asynchronously and update job status.
 
     Args:
@@ -48,7 +50,7 @@ async def _run_spider_async(spider_name: str, job_id: str, settings: dict[str, A
         jobs[job_id] = "running"
 
         # Use AsyncExitStack as specified in the requirements
-        async with AsyncExitStack() as stack: # stack?
+        async with AsyncExitStack() as stack:  # stack?
             # Create CrawlerRunner with project settings
             # runner = CrawlerRunner(settings)
 
@@ -106,7 +108,7 @@ async def trigger_crawl(request: CrawlRequest | None = None) -> CrawlResponse:
     if spider_name not in available_spiders:
         raise HTTPException(
             status_code=400,
-            detail=f"Spider '{spider_name}' not found. Available: {available_spiders}"
+            detail=f"Spider '{spider_name}' not found. Available: {available_spiders}",
         )
 
     # Generate unique job ID
@@ -125,10 +127,7 @@ async def trigger_crawl(request: CrawlRequest | None = None) -> CrawlResponse:
     # Create background task to run the spider
     asyncio.create_task(_run_spider_async(spider_name, job_id, settings))
 
-    return CrawlResponse(
-        job_id=job_id,
-        status="pending"
-    )
+    return CrawlResponse(job_id=job_id, status="pending")
 
 
 @crawler_router.get("/crawl/{job_id}")
@@ -145,15 +144,9 @@ async def get_crawl_status(job_id: str) -> dict[str, str]:
         HTTPException: If job_id is not found
     """
     if job_id not in jobs:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Job '{job_id}' not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
 
-    return {
-        "job_id": job_id,
-        "status": jobs[job_id]
-    }
+    return {"job_id": job_id, "status": jobs[job_id]}
 
 
 @crawler_router.get("/crawl")
@@ -168,11 +161,7 @@ async def list_crawl_jobs() -> dict[str, Any]:
     for status in jobs.values():
         status_counts[status] = status_counts.get(status, 0) + 1
 
-    return {
-        "jobs": jobs,
-        "total_jobs": len(jobs),
-        "status_summary": status_counts
-    }
+    return {"jobs": jobs, "total_jobs": len(jobs), "status_summary": status_counts}
 
 
 @crawler_router.delete("/crawl/{job_id}")
@@ -189,15 +178,9 @@ async def cancel_crawl_job(job_id: str) -> dict[str, str]:
         HTTPException: If job_id is not found
     """
     if job_id not in jobs:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Job '{job_id}' not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
 
     # Remove job from memory
     del jobs[job_id]
 
-    return {
-        "message": f"Job '{job_id}' has been removed",
-        "job_id": job_id
-    }
+    return {"message": f"Job '{job_id}' has been removed", "job_id": job_id}

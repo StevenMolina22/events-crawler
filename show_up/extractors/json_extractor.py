@@ -9,10 +9,10 @@ HTML responses, providing robust data extraction with fallback mechanisms.
 import json
 import re
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Optional, Dict
 from datetime import datetime
 
-from .base import BaseExtractor
+from .base import BaseExtractor, EventData
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class JsonExtractor(BaseExtractor):
         # Pattern 5: React props or state
         r"window\.__PROPS__\s*=\s*(\{.*?\});",
         # Pattern 6: Event data in data attributes
-        r'data-event=(["\'])(\{.*?\})\1',
+        r'data-event=(["\"])(.*?)\1',
         # Pattern 7: Variable assignment with event data
         r'var\s+\w+\s*=\s*(\{.*?"event".*?\});',
         # Pattern 8: Simple event object assignment
@@ -82,7 +82,7 @@ class JsonExtractor(BaseExtractor):
 
         return any(indicator in content for indicator in json_indicators)
 
-    def extract(self, content: str, **kwargs) -> Optional[Dict[str, Any]]:
+    def extract(self, content: str, **kwargs) -> Optional[EventData]:
         """
         Extract event data from HTML content.
 
@@ -121,7 +121,7 @@ class JsonExtractor(BaseExtractor):
 
     def _extract_with_pattern(
         self, content: str, pattern: str, pattern_index: int
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[EventData]:
         """
         Extract data using a specific regex pattern.
 
@@ -283,7 +283,7 @@ class JsonExtractor(BaseExtractor):
 
     def _extract_event_from_json(
         self, json_data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[EventData]:
         """
         Extract event data from parsed JSON structure.
 
@@ -293,34 +293,49 @@ class JsonExtractor(BaseExtractor):
         Returns:
             Event data dictionary or None if extraction fails
         """
-        event_data = {}
-
-        # Try different JSON structures
-        event_info = None
-
-        # Direct event object
-        if "event" in json_data:
-            event_info = json_data["event"]
-        # Event in nested structure
-        elif "props" in json_data and "event" in json_data["props"]:
-            event_info = json_data["props"]["event"]
-        # Event in initialData
-        elif "initialData" in json_data and "event" in json_data["initialData"]:
-            event_info = json_data["initialData"]["event"]
-        # Direct event data (when the whole JSON is the event)
-        elif "name" in json_data and "start_at" in json_data:
-            event_info = json_data
-
+        event_info = self._find_event_info(json_data)
         if not event_info:
             return None
 
-        # Extract basic information
+        event_data: EventData = {}
+        self._extract_basic_info(event_info, event_data)
+        self._extract_temporal_info(event_info, event_data)
+        self._extract_location_data(event_info, event_data)
+        self._extract_metadata(event_info, event_data)
+
+        return event_data if event_data.get("title") else None
+
+    def _find_event_info(self, json_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Find the nested event dictionary within the JSON data."""
+        if "event" in json_data:
+            return json_data["event"]
+        if "props" in json_data and "event" in json_data["props"]:
+            return json_data["props"]["event"]
+        if "initialData" in json_data and "event" in json_data["initialData"]:
+            return json_data["initialData"]["event"]
+        if "name" in json_data and "start_at" in json_data:
+            return json_data
+        return None
+
+    def _extract_basic_info(
+        self, event_info: Dict[str, Any], event_data: EventData
+    ) -> None:
+        """Extract basic event information."""
         event_data["title"] = event_info.get("name", "")
         event_data["api_id"] = event_info.get("api_id", "")
         event_data["event_type"] = event_info.get("event_type", "")
         event_data["visibility"] = event_info.get("visibility", "")
 
-        # Extract temporal information
+        description_fields = ["description", "details", "content", "body"]
+        for field in description_fields:
+            if event_info.get(field):
+                event_data["description"] = event_info[field]
+                break
+
+    def _extract_temporal_info(
+        self, event_info: Dict[str, Any], event_data: EventData
+    ) -> None:
+        """Extract temporal event information."""
         if "start_at" in event_info:
             event_data["date"] = event_info["start_at"]
         if "end_at" in event_info:
@@ -328,44 +343,8 @@ class JsonExtractor(BaseExtractor):
         if "timezone" in event_info:
             event_data["timezone"] = event_info["timezone"]
 
-        # Extract location information
-        self._extract_location_data(event_info, event_data)
-
-        # Extract additional metadata
-        if "cover_url" in event_info:
-            event_data["cover_url"] = event_info["cover_url"]
-
-        # Extract URL
-        if "url" in event_info:
-            url = event_info["url"]
-            if url and not url.startswith("http"):
-                event_data["url"] = f"https://lu.ma/{url}"
-            else:
-                event_data["url"] = url
-
-        # Extract guest information
-        if "guest_count" in event_info:
-            event_data["guest_count"] = event_info["guest_count"]
-        elif "rsvp_count" in event_info:
-            event_data["guest_count"] = event_info["rsvp_count"]
-
-        # Extract organizer information
-        if "user" in event_info:
-            organizer = event_info["user"]
-            if isinstance(organizer, dict):
-                event_data["organizer"] = organizer.get("name", "")
-
-        # Extract description (might be in different fields)
-        description_fields = ["description", "details", "content", "body"]
-        for field in description_fields:
-            if field in event_info and event_info[field]:
-                event_data["description"] = event_info[field]
-                break
-
-        return event_data if event_data.get("title") else None
-
     def _extract_location_data(
-        self, event_info: Dict[str, Any], event_data: Dict[str, Any]
+        self, event_info: Dict[str, Any], event_data: EventData
     ) -> None:
         """
         Extract location information from event data.
@@ -417,7 +396,31 @@ class JsonExtractor(BaseExtractor):
                     event_data["location"] = event_info[field]
                     break
 
-    def validate_extracted_data(self, data: Dict[str, Any]) -> bool:
+    def _extract_metadata(
+        self, event_info: Dict[str, Any], event_data: EventData
+    ) -> None:
+        """Extract metadata from event information."""
+        if "cover_url" in event_info:
+            event_data["cover_url"] = event_info["cover_url"]
+
+        if "url" in event_info:
+            url = event_info["url"]
+            if url and not url.startswith("http"):
+                event_data["url"] = f"https://lu.ma/{url}"
+            else:
+                event_data["url"] = url
+
+        if "guest_count" in event_info:
+            event_data["guest_count"] = event_info["guest_count"]
+        elif "rsvp_count" in event_info:
+            event_data["guest_count"] = event_info["rsvp_count"]
+
+        if "user" in event_info:
+            organizer = event_info["user"]
+            if isinstance(organizer, dict):
+                event_data["organizer"] = organizer.get("name", "")
+
+    def validate_extracted_data(self, data: EventData) -> bool:
         """
         Validate extracted JSON data.
 

@@ -6,6 +6,7 @@ from show_up.db import get_db
 
 OUTPUT_FILE = "output/events.json"
 
+
 class JsonPipeline:
     """Simple pipeline for storing scraped items as JSON."""
 
@@ -15,9 +16,7 @@ class JsonPipeline:
 
     @classmethod
     def from_crawler(cls, crawler):
-        return cls(
-            output_file=crawler.settings.get("JSON_OUTPUT_FILE", OUTPUT_FILE)
-        )
+        return cls(output_file=crawler.settings.get("JSON_OUTPUT_FILE", OUTPUT_FILE))
 
     def open_spider(self, spider):
         spider.logger.info(f"JsonPipeline writing to: {self.output_file}")
@@ -32,7 +31,7 @@ class JsonPipeline:
         output = {
             "events": self.items,
             "count": len(self.items),
-            "scraped_at": datetime.now().isoformat()
+            "scraped_at": datetime.now().isoformat(),
         }
 
         with open(self.output_file, "w", encoding="utf-8") as f:
@@ -57,8 +56,6 @@ class MongoDBPipeline:
 
     def process_item(self, item, spider):
         self.collection.update_one(
-            {"url": item["url"]},
-            {"$set": dict(item)},
-            upsert=True
+            {"url": item["url"]}, {"$set": dict(item)}, upsert=True
         )
         return item

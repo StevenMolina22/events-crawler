@@ -12,7 +12,7 @@ from .router import api_router
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
-    
+
     Returns:
         Configured FastAPI application instance
     """
@@ -21,9 +21,9 @@ def create_app() -> FastAPI:
         description="Event crawler and data API for discovering and managing events",
         version="0.1.0",
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
     )
-    
+
     # Add CORS middleware to allow cross-origin requests
     app.add_middleware(
         CORSMiddleware,
@@ -32,20 +32,16 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Include the main API router
     app.include_router(api_router, prefix="/api/v1")
-    
+
     # Root endpoint outside of API versioning
     @app.get("/")
     async def root() -> dict[str, str]:
         """Root endpoint providing basic service information."""
-        return {
-            "service": "Show Up API",
-            "status": "running",
-            "docs": "/docs"
-        }
-    
+        return {"service": "Show Up API", "status": "running", "docs": "/docs"}
+
     return app
 
 

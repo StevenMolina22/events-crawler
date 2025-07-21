@@ -172,7 +172,7 @@ The crawler automatically stores extracted events in MongoDB Atlas cloud databas
 Create a `.env` file in the project root:
 
 ```env
-MONGODB_URI="mongodb+srv://username:password@cluster.mongodb.net/showup_events?retryWrites=true&w=majority"
+MONGODB_URI="your_mongodb_uri"
 FIRECRAWL_API_KEY="your_firecrawl_api_key"  # Optional for future features
 ```
 

@@ -7,10 +7,35 @@ from various sources and formats.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, TypedDict
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class EventData(TypedDict, total=False):
+    """A dictionary containing extracted event data."""
+
+    title: str
+    url: str
+    description: str
+    date: str
+    end_date: str
+    timezone: str
+    location: str
+    full_address: str
+    city: str
+    country: str
+    coordinates: Dict[str, float]
+    place_id: str
+    event_type: str
+    visibility: str
+    api_id: str
+    cover_url: str
+    organizer: str
+    guest_count: int
+    extraction_method: str
+    extraction_pattern: int
 
 
 class BaseExtractor(ABC):
@@ -33,7 +58,7 @@ class BaseExtractor(ABC):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @abstractmethod
-    def extract(self, content: str, **kwargs) -> Optional[Dict[str, Any]]:
+    def extract(self, content: str, **kwargs) -> Optional[EventData]:
         """
         Extract structured data from the given content.
 
@@ -68,7 +93,7 @@ class BaseExtractor(ABC):
         """
         return self.__class__.__name__.lower().replace("extractor", "")
 
-    def validate_extracted_data(self, data: Dict[str, Any]) -> bool:
+    def validate_extracted_data(self, data: EventData) -> bool:
         """
         Validate extracted data for basic consistency.
 
@@ -90,9 +115,7 @@ class BaseExtractor(ABC):
 
         return True
 
-    def log_extraction_result(
-        self, success: bool, data: Optional[Dict[str, Any]] = None
-    ):
+    def log_extraction_result(self, success: bool, data: Optional[EventData] = None):
         """
         Log the result of an extraction attempt.
 
@@ -129,7 +152,7 @@ class MultiExtractor:
         self.extractors = extractors
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def extract(self, content: str, **kwargs) -> Optional[Dict[str, Any]]:
+    def extract(self, content: str, **kwargs) -> Optional[EventData]:
         """
         Try each extractor in order until one succeeds.
 

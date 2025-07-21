@@ -31,18 +31,22 @@ async def root() -> dict[str, str]:
     return {
         "name": "Show Up API",
         "description": "Event crawler and data API",
-        "version": "0.1.0"
+        "version": "0.1.0",
     }
 
 
 @api_router.get("/events")
 async def get_events(
-    limit: int = Query(default=10, ge=1, le=100, description="Maximum number of events to return"),
-    skip: int = Query(default=0, ge=0, description="Number of events to skip for pagination"),
+    limit: int = Query(
+        default=10, ge=1, le=100, description="Maximum number of events to return"
+    ),
+    skip: int = Query(
+        default=0, ge=0, description="Number of events to skip for pagination"
+    ),
     city: str | None = Query(default=None, description="Filter by city name"),
     country: str | None = Query(default=None, description="Filter by country name"),
     event_type: str | None = Query(default=None, description="Filter by event type"),
-    organizer: str | None = Query(default=None, description="Filter by organizer name")
+    organizer: str | None = Query(default=None, description="Filter by organizer name"),
 ) -> JSONResponse:
     """List events from the database with pagination and filters.
 
@@ -119,7 +123,9 @@ async def get_event(api_id: str) -> dict[str, Any]:
     # If not found by api_id, try finding by title as fallback for older data
     if event is None:
         # Try to find by title if the api_id looks like it could be a URL-encoded title
-        event = db.find_one({"title": {"$regex": api_id.replace("-", "\\s+"), "$options": "i"}})
+        event = db.find_one(
+            {"title": {"$regex": api_id.replace("-", "\\s+"), "$options": "i"}}
+        )
 
     if event is None:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -133,7 +139,9 @@ async def get_event(api_id: str) -> dict[str, Any]:
         return event_out.model_dump()
     except Exception as e:
         # Log the error in production, for now return a more detailed error
-        raise HTTPException(status_code=500, detail=f"Error processing event data: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error processing event data: {str(e)}"
+        )
 
 
 @api_router.get("/sources")
@@ -146,7 +154,7 @@ async def get_sources() -> dict[str, Any]:
     return {
         "sources": [
             {"name": "eventbrite", "status": "active", "last_crawled": None},
-            {"name": "luma", "status": "active", "last_crawled": None}
+            {"name": "luma", "status": "active", "last_crawled": None},
         ],
-        "total": 2
+        "total": 2,
     }

@@ -1,4 +1,5 @@
 import scrapy
+from show_up.extractors.base import EventData
 from show_up.items import EventItem
 from show_up.extractors import JsonExtractor
 from show_up.utils.validation import validate_event_data
@@ -96,24 +97,10 @@ class LumaSpider(scrapy.Spider):
         # Set basic fields
         item["url"] = response.url
 
-        # Try JSON extraction first (primary method)
         extracted_data = self._extract_with_json(response)
+        if extracted_data is None:
+            raise ValueError("No JSON data found")
 
-        # If JSON extraction fails, fall back to HTML parsing
-        if not extracted_data and self.settings.getbool(
-            "JSON_EXTRACTION_FALLBACK", True
-        ):
-            extracted_data = self._extract_with_html_selectors(response)
-
-        # If we still don't have data, create minimal item
-        if not extracted_data:
-            self.logger.warning(f"Failed to extract data from {response.url}")
-            extracted_data = {
-                "title": self._extract_title_fallback(response),
-                "extraction_method": "fallback",
-            }
-
-        # Populate item with extracted data
         self._populate_item(item, extracted_data)
 
         # Validate and clean data
@@ -137,7 +124,7 @@ class LumaSpider(scrapy.Spider):
         yield event_dict
         return  # prevents the old `yield item`
 
-    def _extract_with_json(self, response) -> dict[str, Any] | None:
+    def _extract_with_json(self, response) -> EventData | None:
         """Extract event data using JSON extraction."""
         if not self.settings.getbool("JSON_EXTRACTION_ENABLED", True):
             return None
@@ -158,99 +145,8 @@ class LumaSpider(scrapy.Spider):
 
         return None
 
-    def _extract_with_html_selectors(self, response) -> dict[str, Any] | None:
-        """Extract event data using HTML selectors (fallback method)."""
-        self.logger.info(f"Falling back to HTML selector extraction for {response.url}")
-
-        extracted_data = {"extraction_method": "html_fallback"}
-
-        # Try multiple selectors for title
-        title = response.css("h1::text").get()
-        if not title:
-            title = response.css('[data-testid="event-title"]::text').get()
-        if not title:
-            title = response.css("title::text").get()
-        if not title:
-            title = response.css(".title::text").get()
-
-        # Try multiple selectors for date
-        date = response.css(".event-date::text").get()
-        if not date:
-            date = response.css('[data-testid="event-date"]::text').get()
-        if not date:
-            date = response.css("time::text").get()
-        if not date:
-            date = response.css("[datetime]::attr(datetime)").get()
-
-        # Try multiple selectors for location
-        location = response.css(".event-location::text").get()
-        if not location:
-            location = response.css('[data-testid="event-location"]::text').get()
-        if not location:
-            location = response.css("address::text").get()
-        if not location:
-            location = response.css(".location::text").get()
-
-        # Populate extracted data
-        if title:
-            extracted_data["title"] = title.strip()
-        if date:
-            extracted_data["date"] = date.strip()
-        if location:
-            extracted_data["location"] = location.strip()
-
-        return extracted_data if extracted_data.get("title") else None
-
-    def _extract_title_fallback(self, response) -> str:
-        """Extract title using multiple fallback methods."""
-        # Try page title
-        title = response.css("title::text").get()
-        if title:
-            # Clean up title (remove site name, etc.)
-            title = title.replace(" | Luma", "").replace(" - Luma", "").strip()
-            return title
-
-        # Try any h1 tag
-        title = response.css("h1::text").get()
-        if title:
-            return title.strip()
-
-        # Try meta property
-        title = response.css('meta[property="og:title"]::attr(content)').get()
-        if title:
-            return title.strip()
-
-        # Final fallback - extract from URL
-        url_parts = response.url.split("/")
-        if url_parts and url_parts[-1]:
-            return url_parts[-1].replace("-", " ").title()
-
-        return "Unknown Event"
-
-    def _populate_item(self, item: EventItem, data: dict[str, Any]) -> None:
+    def _populate_item(self, item: EventItem, data: EventData) -> None:
         """Populate EventItem with extracted data."""
-        # Map extracted data to item fields
-        field_mapping = {
-            "title": "title",
-            "date": "date",
-            "end_date": "end_date",
-            "timezone": "timezone",
-            "location": "location",
-            "full_address": "full_address",
-            "city": "city",
-            "country": "country",
-            "coordinates": "coordinates",
-            "place_id": "place_id",
-            "event_type": "event_type",
-            "visibility": "visibility",
-            "api_id": "api_id",
-            "cover_url": "cover_url",
-            "organizer": "organizer",
-            "guest_count": "guest_count",
-            "description": "description",
-            "extraction_method": "extraction_method",
-        }
-
-        for data_key, item_key in field_mapping.items():
-            if data_key in data and data[data_key]:
-                item[item_key] = data[data_key]
+        for key, value in data.items():
+            if key in item.fields and value:
+                item[key] = value

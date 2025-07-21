@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "codespell>=2.4.1",
     "dotenv>=0.9.9",
-    "fastapi>=0.111.0",
+    "fastapi[standard]>=0.111.0",
     "motor>=3.7.1",
     "pymongo[srv]>=4.13.2",
     "scrapy>=2.13.3",
