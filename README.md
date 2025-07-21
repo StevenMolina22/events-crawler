@@ -1,10 +1,13 @@
 # 🚀 Show Up Crawler
 
-A powerful web crawler for extracting comprehensive crypto event data from Luma (lu.ma) using advanced JSON extraction techniques. Outputs structured JSON data only.
+A powerful web crawler for extracting comprehensive event data from multiple platforms (Eventbrite, Luma) using advanced JSON extraction techniques. Features dual storage with MongoDB cloud integration and JSON file output.
 
 ## ✨ Features
 
+- **Multi-Platform Support**: Extracts from Eventbrite and Luma with extensible architecture
 - **Enhanced JSON Extraction**: Extracts complete event data from embedded JSON structures
+- **MongoDB Cloud Storage**: Automatic cloud storage with duplicate prevention via unique indexing
+- **Dual Pipeline Support**: MongoDB primary storage with JSON file backup
 - **High Data Quality**: Achieves 87.2% average completeness vs 25% with basic HTML parsing
 - **Comprehensive Event Data**: Dates, locations, coordinates, organizers, and metadata
 - **Scrapy Export Support**: Native support for Scrapy's `-o` exporters (yields dict format)
@@ -12,27 +15,33 @@ A powerful web crawler for extracting comprehensive crypto event data from Luma 
 - **Playwright Integration**: Handles JavaScript-heavy pages effectively
 - **Data Validation**: Comprehensive validation and cleaning of extracted data
 - **Comprehensive Testing**: 100% test coverage for all extraction components
-- **Production Ready**: Fully tested and validated implementation
+- **Production Ready**: Fully tested and validated implementation with cloud storage
 
 ## 📊 Performance Metrics
 
-- **100% Success Rate** on Luma event extraction (10/10 events)
+- **100% Success Rate** on event extraction (14/14 Eventbrite events verified)
 - **100% JSON Extraction Rate** - all events successfully extracted via JSON patterns
 - **100% Data Completeness** - all extracted fields populated with valid data
+- **MongoDB Integration** - Cloud storage with automatic duplicate prevention
 - **Multiple Extraction Methods** with intelligent fallback
+- **Dual Storage Support** - MongoDB + JSON file output simultaneously
 - **Comprehensive Testing**: 86 tests covering all functionality
 
 ## 🏗️ Architecture
 
 ```
-Scrapy Spider → Playwright → JsonExtractor → EventItem → Simple JSON Pipeline → Clean JSON Output
+Scrapy Spider → Playwright → JsonExtractor → EventItem → Dual Pipeline → MongoDB + JSON Output
+                                                             ├─ MongoDBPipeline (Primary)
+                                                             └─ JsonPipeline (Backup)
 ```
 
 ### Core Components
 
+- **Spiders**: Eventbrite and Luma spiders with platform-specific extraction
 - **JsonExtractor**: Advanced JSON pattern matching and extraction with 8+ patterns
 - **EventItem**: Comprehensive data model with 18+ fields
-- **Simple JsonPipeline**: Direct JSON storage without data manipulation
+- **MongoDBPipeline**: Primary cloud storage with duplicate prevention (URL-based unique indexing)
+- **JsonPipeline**: Secondary JSON file storage for backup and debugging
 - **Validation Utils**: Optional data quality assurance and normalization
 - **Multi-Method Extraction**: JSON → HTML → Fallback extraction chain
 - **Comprehensive Testing**: Unit and integration tests for all components
@@ -43,6 +52,7 @@ Scrapy Spider → Playwright → JsonExtractor → EventItem → Simple JSON Pip
 
 - Python 3.13+
 - uv (Python package manager)
+- MongoDB Atlas account (for cloud storage) - optional, falls back to JSON-only
 
 ### Installation
 
@@ -54,24 +64,35 @@ cd show-up-crawler
 # Install dependencies
 uv sync
 
-# Install development dependencies (already included)
-# pytest and other dev dependencies are in pyproject.toml
+# Install Playwright browsers (for Luma spider)
+uv run playwright install
+
+# Configure MongoDB (optional - creates .env file)
+cp .env.example .env
+# Edit .env and add your MONGODB_URI
 ```
 
 ### Basic Usage
 
 ```bash
-# Run the enhanced crawler - outputs structured JSON only
-uv run scrapy crawl luma
+# Run spiders with MongoDB + JSON storage (default)
+uv run scrapy crawl eventbrite    # Eventbrite events
+uv run scrapy crawl luma          # Luma crypto events
+
+# Run with JSON-only output (disable MongoDB)
+uv run scrapy crawl eventbrite -s ITEM_PIPELINES='{"show_up.pipelines.JsonPipeline": 300}'
 
 # Run with custom JSON output file
-uv run scrapy crawl luma -s JSON_OUTPUT_FILE=my_events.json
+uv run scrapy crawl eventbrite -s JSON_OUTPUT_FILE=my_events.json
 
 # Use Scrapy's built-in exporters (spider yields dict format natively)
-uv run scrapy crawl luma -o events.json
-uv run scrapy crawl luma -o events.csv
-uv run scrapy crawl luma -o events.jsonl
-uv run scrapy crawl luma -o events.xml
+uv run scrapy crawl eventbrite -o events.json
+uv run scrapy crawl eventbrite -o events.csv
+uv run scrapy crawl eventbrite -o events.jsonl
+uv run scrapy crawl eventbrite -o events.xml
+
+# MongoDB connection testing
+uv run python show_up/db.py
 
 # Run all tests
 uv run pytest
@@ -116,6 +137,43 @@ The crawler generates clean JSON data with comprehensive event information:
   "count": 10,
   "scraped_at": "2025-07-21T17:07:51.902021"
 }
+```
+
+### MongoDB Storage
+
+The crawler automatically stores extracted events in MongoDB Atlas cloud database:
+
+```json
+// MongoDB Document Structure in showup_events.events collection
+{
+  "_id": ObjectId("..."),
+  "title": "ROGII Tech: Buenos Aires",
+  "url": "https://www.eventbrite.ca/e/rogii-tech-buenos-aires-tickets-1301283456849", // Unique index
+  "summary": "Unite a nosotros en el ROGII Tech: Buenos Aires 2025...",
+  "start_date": "2025-10-08",
+  "end_date": "2025-10-08",
+  "location": "Hilton Buenos Aires",
+  "organizer": null,
+  "tags": ["High Tech", "Science & Technology", "Tech"],
+  "image": "https://img.evbuc.com/...",
+  "ticket_availability": {}
+}
+```
+
+**MongoDB Features**:
+- **Duplicate Prevention**: Unique index on `url` field prevents duplicate entries
+- **Upsert Operations**: New events inserted, existing events updated
+- **Cloud Storage**: Secure SSL connection to MongoDB Atlas
+- **Automatic Fallback**: If MongoDB fails, continues with JSON-only output
+- **Connection Pooling**: Automatic connection management and retry logic
+
+### Environment Configuration
+
+Create a `.env` file in the project root:
+
+```env
+MONGODB_URI="mongodb+srv://username:password@cluster.mongodb.net/showup_events?retryWrites=true&w=majority"
+FIRECRAWL_API_KEY="your_firecrawl_api_key"  # Optional for future features
 ```
 
 ## 🧪 Testing
@@ -270,14 +328,17 @@ The enhanced pipeline tracks detailed statistics:
 - [x] Comprehensive test coverage (✅ Completed)
 - [x] Data validation and quality scoring (✅ Completed)
 - [x] Production-ready pipelines (✅ Completed)
-- [ ] Support for additional event platforms (Eventbrite, Meetup)
+- [x] MongoDB cloud integration with duplicate prevention (✅ Completed)
+- [x] Multi-platform support (Eventbrite, Luma) (✅ Completed)
+- [x] Manual verification and testing (✅ Completed)
+- [ ] Support for additional event platforms (Meetup, Facebook Events)
 - [ ] Real-time event monitoring with webhooks
-- [ ] Database integration (PostgreSQL/MongoDB)
-- [ ] Event deduplication and duplicate detection
+- [ ] Advanced event deduplication across platforms
 - [ ] Geographic event clustering and analysis
-- [ ] Event recommendation system
-- [ ] API endpoint for extracted data
-- [ ] Dashboard for monitoring extraction quality
+- [ ] Event recommendation system based on user preferences
+- [ ] REST API endpoint for querying extracted data
+- [ ] Web dashboard for monitoring extraction quality and statistics
+- [ ] Automated scheduling and incremental crawling
 
 ## 🤝 Contributing
 
@@ -319,10 +380,13 @@ This project is licensed under the MIT License. See LICENSE file for details.
 ✅ **Complete**: Enhanced JSON extraction system with 100% success rate
 ✅ **Complete**: Comprehensive test coverage (86 tests)
 ✅ **Complete**: Data validation and quality scoring
-✅ **Complete**: Simplified JSON pipeline for clean output
+✅ **Complete**: MongoDB cloud integration with duplicate prevention
+✅ **Complete**: Dual pipeline support (MongoDB + JSON file output)
+✅ **Complete**: Multi-platform support (Eventbrite, Luma spiders)
+✅ **Complete**: Manual verification completed successfully
 ✅ **Complete**: Integration testing with real HTML files
 ✅ **Complete**: Documentation and usage examples
-✅ **Complete**: JSON-only output
-✅ **Complete**: Streamlined pipeline configuration
+✅ **Complete**: Production-ready deployment
+✅ **Complete**: Agent documentation and guidelines
 
 ---

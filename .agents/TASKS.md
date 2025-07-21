@@ -149,3 +149,15 @@ This file tracks the tasks for the Show Up Crawler project.
   - **[DONE]** Update simplified tests to match new pipeline behavior
   - **[DONE]** Verify all 86 tests pass with simplified implementation
   - **[DONE]** Update .agents documentation to reflect simplified architecture
+
+- **[DONE]** Task 4: Manual Verification (Step 4 of Spider Development Plan)
+  - **[DONE]** Install project dependencies using uv (`uv sync`)
+  - **[DONE]** Install Playwright browsers with OS compatibility handling
+  - **[DONE]** Run Eventbrite spider locally with successful extraction (14 events)
+  - **[DONE]** Verify JSON pipeline creates structured output (`output/debug.json`)
+  - **[DONE]** Test MongoDB cloud connection and authentication
+  - **[DONE]** Verify data insertion into `showup_events.events` collection
+  - **[DONE]** Test duplicate prevention mechanism via URL-based unique indexing
+  - **[DONE]** Confirm re-running spider with unchanged items does not create duplicates
+  - **[DONE]** Document verification results and update agent guidelines
+  - **[DONE]** Update project documentation to reflect MongoDB pipeline integration
