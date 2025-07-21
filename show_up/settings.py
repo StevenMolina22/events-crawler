@@ -24,7 +24,8 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "show_up.pipelines.JsonPipeline": 300,  # JSON pipeline with structured output
+    "show_up.pipelines.MongoDBPipeline": 200,
+    "show_up.pipelines.JsonPipeline": 300,
 }
 
 # JSON output settings

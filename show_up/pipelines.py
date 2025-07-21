@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 from typing import Dict, List, Any
+from show_up.db import get_db
 
 OUTPUT_FILE = "output/events.json"
 
@@ -43,4 +44,21 @@ class JsonPipeline:
         # Convert item to dict and add to items list
         item_dict = dict(item)
         self.items.append(item_dict)
+        return item
+
+
+class MongoDBPipeline:
+    """Pipeline for storing scraped items in MongoDB."""
+
+    def open_spider(self, spider):
+        self.collection = get_db()["events"]
+        # Create unique index on "url" if it doesn't exist
+        self.collection.create_index("url", unique=True, background=True)
+
+    def process_item(self, item, spider):
+        self.collection.update_one(
+            {"url": item["url"]},
+            {"$set": dict(item)},
+            upsert=True
+        )
         return item
