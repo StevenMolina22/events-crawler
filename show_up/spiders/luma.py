@@ -1,5 +1,5 @@
 import scrapy
-from show_up.extractors.base import EventData
+from show_up.extractors.json_extractor import EventData
 from show_up.items import EventItem
 from show_up.extractors import JsonExtractor
 from show_up.utils.validation import validate_event_data

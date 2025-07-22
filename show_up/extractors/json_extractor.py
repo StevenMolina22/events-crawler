@@ -9,15 +9,36 @@ HTML responses, providing robust data extraction with fallback mechanisms.
 import json
 import re
 import logging
-from typing import Any, Optional, Dict
+from typing import Any, TypedDict
 from datetime import datetime
 
-from .base import BaseExtractor, EventData
 
-logger = logging.getLogger(__name__)
+class EventData(TypedDict, total=False):
+    """A dictionary containing extracted event data."""
+
+    title: str
+    url: str
+    description: str
+    date: str
+    end_date: str
+    timezone: str
+    location: str
+    full_address: str
+    city: str
+    country: str
+    coordinates: dict[str, float]
+    place_id: str
+    event_type: str
+    visibility: str
+    api_id: str
+    cover_url: str
+    organizer: str
+    guest_count: int
+    extraction_method: str
+    extraction_pattern: int
 
 
-class JsonExtractor(BaseExtractor):
+class JsonExtractor:
     """
     Extractor for JSON data embedded in HTML content.
 
@@ -45,14 +66,15 @@ class JsonExtractor(BaseExtractor):
         r'=\s*(\{.*?"event".*?\});',
     ]
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize the JSON extractor.
 
         Args:
             config: Optional configuration with custom patterns and settings
         """
-        super().__init__(config)
+        self.config = config or {}
+        self.logger = logging.getLogger(self.__class__.__name__)
 
         # Add custom patterns from config
         self.patterns = self.JSON_PATTERNS.copy()
@@ -82,7 +104,7 @@ class JsonExtractor(BaseExtractor):
 
         return any(indicator in content for indicator in json_indicators)
 
-    def extract(self, content: str, **kwargs) -> Optional[EventData]:
+    def extract(self, content: str, **kwargs) -> EventData | None:
         """
         Extract event data from HTML content.
 
@@ -121,7 +143,7 @@ class JsonExtractor(BaseExtractor):
 
     def _extract_with_pattern(
         self, content: str, pattern: str, pattern_index: int
-    ) -> Optional[EventData]:
+    ) -> EventData | None:
         """
         Extract data using a specific regex pattern.
 
@@ -174,7 +196,7 @@ class JsonExtractor(BaseExtractor):
 
         return None
 
-    def _clean_json_string(self, json_str: str) -> Optional[str]:
+    def _clean_json_string(self, json_str: str) -> str | None:
         """
         Clean and prepare JSON string for parsing.
 
@@ -281,9 +303,7 @@ class JsonExtractor(BaseExtractor):
 
         return json_str
 
-    def _extract_event_from_json(
-        self, json_data: Dict[str, Any]
-    ) -> Optional[EventData]:
+    def _extract_event_from_json(self, json_data: dict[str, Any]) -> EventData | None:
         """
         Extract event data from parsed JSON structure.
 
@@ -305,7 +325,7 @@ class JsonExtractor(BaseExtractor):
 
         return event_data if event_data.get("title") else None
 
-    def _find_event_info(self, json_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _find_event_info(self, json_data: dict[str, Any]) -> dict[str, Any] | None:
         """Find the nested event dictionary within the JSON data."""
         if "event" in json_data:
             return json_data["event"]
@@ -318,7 +338,7 @@ class JsonExtractor(BaseExtractor):
         return None
 
     def _extract_basic_info(
-        self, event_info: Dict[str, Any], event_data: EventData
+        self, event_info: dict[str, Any], event_data: EventData
     ) -> None:
         """Extract basic event information."""
         event_data["title"] = event_info.get("name", "")
@@ -333,7 +353,7 @@ class JsonExtractor(BaseExtractor):
                 break
 
     def _extract_temporal_info(
-        self, event_info: Dict[str, Any], event_data: EventData
+        self, event_info: dict[str, Any], event_data: EventData
     ) -> None:
         """Extract temporal event information."""
         if "start_at" in event_info:
@@ -344,7 +364,7 @@ class JsonExtractor(BaseExtractor):
             event_data["timezone"] = event_info["timezone"]
 
     def _extract_location_data(
-        self, event_info: Dict[str, Any], event_data: EventData
+        self, event_info: dict[str, Any], event_data: EventData
     ) -> None:
         """
         Extract location information from event data.
@@ -397,7 +417,7 @@ class JsonExtractor(BaseExtractor):
                     break
 
     def _extract_metadata(
-        self, event_info: Dict[str, Any], event_data: EventData
+        self, event_info: dict[str, Any], event_data: EventData
     ) -> None:
         """Extract metadata from event information."""
         if "cover_url" in event_info:
@@ -430,8 +450,11 @@ class JsonExtractor(BaseExtractor):
         Returns:
             True if data is valid
         """
-        if not super().validate_extracted_data(data):
-            return False
+        required_fields = self.config.get("required_fields", [])
+        for field in required_fields:
+            if field not in data or not data[field]:
+                self.logger.warning(f"Missing required field: {field}")
+                return False
 
         # JSON-specific validation
         required_fields = ["title"]
