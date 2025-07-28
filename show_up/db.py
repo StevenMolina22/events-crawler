@@ -5,7 +5,7 @@ from pymongo import MongoClient
 import asyncio
 import os
 
-from pymongo.synchronous.database import Database
+from pymongo.synchronous.database import Database # for type hints
 
 load_dotenv()
 

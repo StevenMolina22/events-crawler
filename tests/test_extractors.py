@@ -125,9 +125,8 @@ def test_extract_with_nested_event_data(extractor, sample_event_data):
     """
     result = extractor.extract(html_content)
     assert result is not None
-    if result:
-        assert result["title"] == "Test Event"
-        assert result["timezone"] == "America/Buenos_Aires"
+    assert result["title"] == "Test Event"
+    assert result["timezone"] == "America/Buenos_Aires"
 
 
 def test_extract_location_data(extractor, sample_event_data):
@@ -143,15 +142,15 @@ def test_extract_location_data(extractor, sample_event_data):
     """
     result = extractor.extract(html_content)
     assert result is not None
-    if result:
-        assert result["location"] == "Test Address 123, Buenos Aires, Argentina"
-        assert result["full_address"] == "Test Address 123, Buenos Aires, Argentina"
-        assert result["city"] == "Buenos Aires"
-        assert result["country"] == "Argentina"
-        assert result["place_id"] == "ChIJ_test123"
-        assert "coordinates" in result
-        assert result["coordinates"]["latitude"] == -34.6037
-        assert result["coordinates"]["longitude"] == -58.3816
+
+    assert result["location"] == "Test Address 123, Buenos Aires, Argentina"
+    assert result["full_address"] == "Test Address 123, Buenos Aires, Argentina"
+    assert result["city"] == "Buenos Aires"
+    assert result["country"] == "Argentina"
+    assert result["place_id"] == "ChIJ_test123"
+    assert "coordinates" in result
+    assert result["coordinates"]["latitude"] == -34.6037
+    assert result["coordinates"]["longitude"] == -58.3816
 
 
 def test_extract_with_url_construction(extractor, sample_event_data):
@@ -167,8 +166,7 @@ def test_extract_with_url_construction(extractor, sample_event_data):
     """
     result = extractor.extract(html_content)
     assert result is not None
-    if result:
-        assert result["url"] == "https://lu.ma/test-event"
+    assert result["url"] == "https://lu.ma/test-event"
 
 
 def test_extract_with_malformed_json(extractor):
@@ -262,10 +260,10 @@ def test_extraction_with_minimal_event_data(extractor):
     """
     result = extractor.extract(html_content)
     assert result is not None
-    if result:
-        assert result["title"] == "Minimal Event"
-        assert result["date"] == "2025-07-21T22:30:00.000Z"
-        assert result["extraction_method"] == "json"
+
+    assert result["title"] == "Minimal Event"
+    assert result["date"] == "2025-07-21T22:30:00.000Z"
+    assert result["extraction_method"] == "json"
 
 
 def test_extraction_with_alternative_organizer_field(extractor, sample_event_data):
@@ -284,8 +282,8 @@ def test_extraction_with_alternative_organizer_field(extractor, sample_event_dat
     """
     result = extractor.extract(html_content)
     assert result is not None
-    if result:
-        assert "organizer" not in result
+
+    assert "organizer" not in result
 
 
 def test_extraction_with_guest_count_alternatives(extractor, sample_event_data):
@@ -303,5 +301,5 @@ def test_extraction_with_guest_count_alternatives(extractor, sample_event_data):
     """
     result = extractor.extract(html_content)
     assert result is not None
-    if result:
-        assert result["guest_count"] == 42
+
+    assert result["guest_count"] == 42
