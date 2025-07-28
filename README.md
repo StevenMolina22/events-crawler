@@ -64,7 +64,7 @@ cd show-up-crawler
 # Install dependencies
 uv sync
 
-# Configure keys
+uv run playwright install
 cp .env.example .env
 # Edit .env and add your MONGODB_URI
 ```
