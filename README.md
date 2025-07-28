@@ -64,10 +64,7 @@ cd show-up-crawler
 # Install dependencies
 uv sync
 
-# Install Playwright browsers (for Luma spider)
 uv run playwright install
-
-# Configure MongoDB (optional - creates .env file)
 cp .env.example .env
 # Edit .env and add your MONGODB_URI
 ```
