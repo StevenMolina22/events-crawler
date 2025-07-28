@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from scrapy.crawler import CrawlerRunner
 from scrapy.utils.project import get_project_settings
 
 from show_up.api.models import CrawlRequest, CrawlResponse

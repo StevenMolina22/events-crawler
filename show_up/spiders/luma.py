@@ -4,7 +4,6 @@ from show_up.items import EventItem
 from show_up.extractors import JsonExtractor
 from show_up.utils.validation import validate_event_data
 from scrapy_playwright.page import PageMethod
-from typing import Any
 
 HTML_FILE = "output/luma.html"
 
@@ -15,15 +14,7 @@ class LumaSpider(scrapy.Spider):
     start_urls = ["https://lu.ma/crypto"]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Initialize JSON extractor
-        custom_patterns = []
-        if hasattr(self, "settings") and self.settings:
-            custom_patterns = self.settings.getlist("JSON_EXTRACTION_PATTERNS", [])
-
-        self.json_extractor = JsonExtractor(
-            config={"required_fields": ["title"], "custom_patterns": custom_patterns}
-        )
+        self.json_extractor = JsonExtractor(config={"required_fields": ["title"]})
 
     async def start(self):
         for url in self.start_urls:
@@ -62,10 +53,6 @@ class LumaSpider(scrapy.Spider):
         for selector in alternative_selectors:
             links = response.css(f"{selector}::attr(href)").getall()
             self.logger.info(f"Selector '{selector}' found {len(links)} links")
-            if links:
-                # Show first few links as examples
-                for link in links[:3]:
-                    self.logger.info(f"  Example link: {link}")
 
         # If we found event links, process them
         if event_links:
@@ -91,10 +78,7 @@ class LumaSpider(scrapy.Spider):
         Returns:
             dict: Event data as a dictionary for JSON serialization.
         """
-        # Initialize event item
         item = EventItem()
-
-        # Set basic fields
         item["url"] = response.url
 
         extracted_data = self._extract_with_json(response)
@@ -108,27 +92,16 @@ class LumaSpider(scrapy.Spider):
             item_dict = dict(item)
             validated_data = validate_event_data(item_dict)
 
-            # Update item with validated data
             for key, value in validated_data.items():
                 item[key] = value
-
-            self.logger.info(
-                f"Successfully extracted event: {item.get('title', 'Unknown')} using {item.get('extraction_method', 'unknown')}"
-            )
 
         except Exception as e:
             self.logger.error(f"Data validation failed for {response.url}: {e}")
 
-        # Convert to dictionary for JSON serialization (required for -o events.json)
-        event_dict: dict[str, Any] = dict(item)
-        yield event_dict
-        return  # prevents the old `yield item`
+        yield dict(item)  # convert to dict for serialization
 
     def _extract_with_json(self, response) -> EventData | None:
         """Extract event data using JSON extraction."""
-        if not self.settings.getbool("JSON_EXTRACTION_ENABLED", True):
-            return None
-
         try:
             extracted_data = self.json_extractor.extract(
                 response.text, url=response.url

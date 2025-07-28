@@ -34,7 +34,6 @@ JSON_INDENT = 2  # Pretty-print JSON with 2-space indentation
 JSON_ENSURE_ASCII = False  # Allow non-ASCII characters in JSON
 
 # JSON Extraction Settings
-JSON_EXTRACTION_ENABLED = True  # Enable JSON data extraction from HTML
 JSON_EXTRACTION_PATTERNS = [
     r'"event":\s*(\{[^}]+(?:\{[^}]*\}[^}]*)*\})',
     r"window\.__INITIAL_DATA__\s*=\s*({.+?});",

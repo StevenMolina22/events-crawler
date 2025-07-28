@@ -8,14 +8,12 @@ HTML responses, providing robust data extraction with fallback mechanisms.
 
 import json
 import re
-import logging
 from typing import Any, TypedDict
 from datetime import datetime
 
 
 class EventData(TypedDict, total=False):
     """A dictionary containing extracted event data."""
-
     title: str
     url: str
     description: str
@@ -74,7 +72,6 @@ class JsonExtractor:
             config: Optional configuration with custom patterns and settings
         """
         self.config = config or {}
-        self.logger = logging.getLogger(self.__class__.__name__)
 
         # Add custom patterns from config
         self.patterns = self.JSON_PATTERNS.copy()
@@ -130,15 +127,11 @@ class JsonExtractor:
                     # Add any additional context from kwargs
                     if "url" in kwargs:
                         result["url"] = kwargs["url"]
-
-                    self.logger.info(f"Successfully extracted data using pattern {i}")
                     return result
 
             except Exception as e:
-                self.logger.debug(f"Pattern {i} failed: {e}")
                 continue
 
-        self.logger.warning("All JSON patterns failed")
         return None
 
     def _extract_with_pattern(
@@ -189,9 +182,6 @@ class JsonExtractor:
                     return event_data
 
             except (json.JSONDecodeError, KeyError, TypeError) as e:
-                self.logger.debug(
-                    f"Failed to parse JSON from pattern {pattern_index}: {e}"
-                )
                 continue
 
         return None
@@ -453,7 +443,6 @@ class JsonExtractor:
         required_fields = self.config.get("required_fields", [])
         for field in required_fields:
             if field not in data or not data[field]:
-                self.logger.warning(f"Missing required field: {field}")
                 return False
 
         # JSON-specific validation
@@ -467,7 +456,6 @@ class JsonExtractor:
             try:
                 datetime.fromisoformat(data["date"].replace("Z", "+00:00"))
             except (ValueError, AttributeError):
-                self.logger.warning(f"Invalid date format: {data['date']}")
                 return False
 
         return True

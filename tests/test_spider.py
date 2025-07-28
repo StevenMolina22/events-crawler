@@ -42,9 +42,6 @@ class TestLumaSpider(unittest.TestCase):
         spider.settings = mock_settings
         spider.__init__()
 
-        # Check that custom patterns were passed to extractor
-        mock_settings.getlist.assert_called_with("JSON_EXTRACTION_PATTERNS", [])
-
     def test_parse_with_event_links(self):
         """Test parse method when event links are found."""
         # Create mock response with event links
