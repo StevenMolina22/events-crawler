@@ -5,13 +5,15 @@ from pymongo import MongoClient
 import asyncio
 import os
 
+from pymongo.synchronous.database import Database
+
 load_dotenv()
 
 URI = os.getenv("MONGODB_URI")
 assert URI is not None
 
 
-async def ping_server():
+async def ping_server() -> None:
     # Replace the placeholder with your Atlas connection string
     # Set the Stable API version when creating a new client
     client = AsyncIOMotorClient(URI, server_api=ServerApi("1"))
@@ -33,7 +35,7 @@ def print_events():
         print(event)
 
 
-def get_db():
+def get_db() -> Database:
     client = MongoClient(URI)
     db = client["showup_events"]
     return db
