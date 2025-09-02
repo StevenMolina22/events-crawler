@@ -29,7 +29,6 @@ class LumaSpider(scrapy.Spider):
             )
 
     def parse(self, response):
-        # Save the full HTML response for debugging
         with open(HTML_FILE, "w", encoding="utf-8") as f:
             f.write(response.text)
 

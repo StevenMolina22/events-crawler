@@ -14,6 +14,7 @@ from datetime import datetime
 
 class EventData(TypedDict, total=False):
     """A dictionary containing extracted event data."""
+
     title: str
     url: str
     description: str

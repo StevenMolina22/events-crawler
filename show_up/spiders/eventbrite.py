@@ -16,6 +16,9 @@ class EventbriteSpider(scrapy.Spider):
         This function parses the Eventbrite search results page.
         It extracts the event data from the window.__SERVER_DATA__ variable using a regex.
         """
+        with open(HTML_FILE, "w", encoding="utf-8") as f:
+            f.write(response.text)
+
         server_data_script = response.xpath(
             '//script[contains(., "window.__SERVER_DATA__")]/text()'
         ).get()
