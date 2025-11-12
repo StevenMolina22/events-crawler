@@ -4,8 +4,24 @@ __pycache__/
 build/
 dist/
 wheels/
+.ruff_cache
 *.egg-info
 
 # Virtual environments
 .venv
+.env
 
+.pytest_cache/
+
+enhanced_extraction_results.json
+output/
+crypto_events.json
+debug_response.html
+events.json
+response_eventbrite.html
+
+.kiro
+.ropeproject
+
+repomix.config.json
+.repomixignore

@@ -5,5 +5,20 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "codespell>=2.4.1",
+    "dotenv>=0.9.9",
+    "fastapi[standard]>=0.111.0",
+    "motor>=3.7.1",
+    "pymongo[srv]>=4.13.2",
     "scrapy>=2.13.3",
+    "scrapy-playwright>0.0.33",
+    "shub>=2.15.4",
+    "urllib3>=1.25.4,<2.1",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.9.2",
+    "pytest>=8.4.1",
 ]
